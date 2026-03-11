@@ -238,12 +238,18 @@ export function isRetryableError(
   strategy = RETRY_STRATEGY,
 ): boolean {
   // Explicitly retryable
-  if (strategy.RETRYABLE_STATUS_CODES.includes(statusCode)) {
+  if (
+    (strategy.RETRYABLE_STATUS_CODES as readonly number[]).includes(statusCode)
+  ) {
     return true;
   }
 
   // Explicitly non-retryable
-  if (strategy.NON_RETRYABLE_STATUS_CODES.includes(statusCode)) {
+  if (
+    (strategy.NON_RETRYABLE_STATUS_CODES as readonly number[]).includes(
+      statusCode,
+    )
+  ) {
     return false;
   }
 
