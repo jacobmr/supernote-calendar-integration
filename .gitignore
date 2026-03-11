@@ -1,0 +1,15 @@
+node_modules/
+dist/
+.env
+tokens.json
+.DS_Store
+*.log
+npm-debug.log*
+config/*.js
+config/*.d.ts
+config/*.js.map
+config/*.d.ts.map
+src/**/*.js
+src/**/*.d.ts
+src/**/*.js.map
+src/**/*.d.ts.map
