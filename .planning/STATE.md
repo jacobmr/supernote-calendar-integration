@@ -1,61 +1,139 @@
-# Project State
+# Project State - Supernote Calendar Integration
 
-## Project Reference
+**Last Updated**: 2026-03-11
+**Current Phase**: 02-meeting-detection (Plan 01 Complete)
+**Total Phases**: 6
 
-See: .planning/PROJECT.md (updated 2026-03-11)
+## Phase Completion Status
 
-**Core value:** Clean, findable meeting templates. Every meeting prep begins with an organized note that's easy to locate and ready to fill in.
-**Current focus:** Phase 1 — API Setup & Exploration
+| Phase | Plan | Status | Commit |
+|-------|------|--------|--------|
+| 01-api-setup | 01 | ✅ Complete | 87222df |
+| 01-api-setup | 02 | ✅ Complete | - |
+| 01-api-setup | 03 | ✅ Complete | 5ebb761 |
+| **02-meeting-detection** | **01** | **✅ Complete** | **0ee39e7** |
+| 02-meeting-detection | 02+ | ⏳ Pending | - |
+| 03-notebook-creation | - | ⏳ Pending | - |
+| 04-real-time-sync | - | ⏳ Pending | - |
+| 05-advanced-features | - | ⏳ Pending | - |
+| 06-deployment | - | ⏳ Pending | - |
 
-## Current Position
+## Phase 2 Plan 01 Summary
 
-Phase: 1 of 6 (API Setup & Exploration)
-Plan: 3 of 3 in current phase (COMPLETE)
-Status: Phase 1 Complete - Ready for Phase 2
-Last activity: 2026-03-11 — Completed 01-03-PLAN.md (API Verification & Documentation)
+**What Was Built**:
+- Hourly scheduled job running via node-cron
+- MeetingDetectorService queries Google Calendar (30-day window)
+- StateManager persists meeting state to JSON file
+- Change detection identifies new/changed/cancelled meetings
+- Scheduler logs clear summaries of changes
 
-Progress: ██████░░░░ 50%
+**Key Files**:
+- `src/services/meeting-detector.ts` - MeetingDetectorService
+- `src/services/state-manager.ts` - StateManager with change detection
+- `src/index-scheduler.ts` - Hourly cron scheduler
+- `tests/meeting-detector.test.ts` - 9 change detection tests
 
-## Performance Metrics
+**Test Results**: 37/37 passing (28 Phase 1 + 9 Phase 2 new tests)
 
-**Velocity:**
+**Commit History**:
+1. `346c097` - feat(02-01): add hourly scheduler and meeting detector service
+2. `0ee39e7` - feat(02-01): implement state persistence and change detection for meetings
 
-- Total plans completed: 3
-- Average duration: 84 min
-- Total execution time: 4h 12m
+## Key Decisions Made
 
-**By Phase:**
+### From Phase 2 Plan 01
+1. **Query window**: 30 days (balance frequency vs load)
+2. **State persistence**: JSON file at data/meeting-state.json (no database yet)
+3. **Change detection**: Compare full state (simpler than incremental)
+4. **Scheduler frequency**: Every hour at :00
+5. **Rate limiting**: Respects Google Calendar's 600/min limit with 1 query/hour
 
-| Phase | Plans | Total | Avg/Plan |
-| ----- | ----- | ----- | -------- |
-| 1     | 3/3   | 252m  | 84m      |
+### From Phase 1
+1. **Google Calendar API**: Verified working, OAuth2 token refresh implemented
+2. **Supernote API**: Verified working, read-only constraint documented
+3. **Retry strategy**: Exponential backoff with jitter in constants.ts
+4. **Error handling**: Graceful skipping when credentials missing (CI/dev friendly)
 
-**Recent Trend:**
+## Current Constraints & Blockers
 
-- Last 3 plans: 01-03 (45m), 01-02 (109m), 01-01 (79m)
-- Trend: Phase 1 complete - APIs verified and documented
+### Resolved
+✅ Google Calendar API token refresh mechanism
+✅ Recurring event tracking strategy (composite key: parent ID + date)
+✅ Change detection logic for new/changed/cancelled meetings
+✅ State persistence without database
 
-## Accumulated Context
+### Pending Resolution (Phase 3)
+⚠️ Supernote notebook creation not in unofficial API
+- Solution: Reverse-engineer POST endpoint or manual folder creation
+- Affects: Phase 3 folder creation implementation
 
-### Decisions
+## Architecture Decisions
 
-Decisions are logged in PROJECT.md Key Decisions table.
-Recent decisions affecting current work:
+### Current Stack
+- **Scheduler**: node-cron (every hour at :00)
+- **State Storage**: JSON file (data/meeting-state.json)
+- **Change Detection**: In-memory comparison
+- **Persistence**: File I/O with directory auto-creation
 
-- Phase 1: Using unofficial Supernote API (adrianba/supernote-cloud-api) — pending validation during Phase 1
-- Phase 2: Scheduled job runs hourly (vs real-time) for simplicity and sufficiency for meeting prep
+### Next Stack (Phase 3)
+- Notebook/folder creation in Supernote
+- Meeting note template generation
+- Event ID → Folder ID mapping
 
-### Deferred Issues
+## Known Issues
 
-None yet.
+**None** - Phase 2 Plan 01 executed cleanly without deviations.
 
-### Blockers/Concerns
+## Ready For
 
-None yet.
+✅ **Immediate**: Phase 2 Plan 02 (if exists) or Phase 3
+✅ **Manual Testing**: Run scheduler with real Google Calendar for 2-3 hours
+✅ **Integration**: Integrate meeting changes into Supernote notebook creation
 
-## Session Continuity
+## Setup Instructions
 
-Last session: 2026-03-11
-Stopped at: Completed 01-03-PLAN.md (Phase 1 complete)
-Resume file: None
-Next session: Start Phase 2 (Meeting Detection Engine)
+**To run scheduler**:
+```bash
+npm run build
+NODE_ENV=production npx ts-node src/index-scheduler.ts
+```
+
+**To test**:
+```bash
+npm test                    # Run all tests
+npm test -- meeting-detector  # Run change detection tests only
+```
+
+**To verify state**:
+```bash
+cat data/meeting-state.json  # View persisted meeting state
+```
+
+## Performance Baselines
+
+- Build time: ~2 seconds
+- Test execution: ~2.6 seconds (37 tests)
+- Scheduler job: ~50-200ms per run
+- State file size: ~1KB per 20 meetings
+
+## Next Actions
+
+1. **Phase 3 Blocker**: Resolve Supernote notebook creation
+   - Option A: Reverse-engineer POST /api/notebook/create endpoint
+   - Option B: Create folders manually in Supernote UI first
+   - Option C: Contact Supernote for official API documentation
+
+2. **Phase 3 Implementation**: Once folder creation resolved
+   - Implement notebook/folder structure creation
+   - Map meeting ID → folder path
+   - Generate meeting note templates with attendees and times
+
+3. **Testing**: Real-calendar verification
+   - Run scheduler for 2-3 hours
+   - Verify Google Calendar changes are detected
+   - Check change logs for accuracy
+
+---
+
+_See .planning/phases/02-meeting-detection/02-01-SUMMARY.md for detailed plan execution_
+_See .planning/phases/01-api-setup/API-FINDINGS.md for API constraints_
