@@ -34,6 +34,9 @@ export class GoogleCalendarService {
     // Load stored tokens
     const tokens = loadStoredTokens();
     if (!tokens) {
+      console.error(
+        "No stored tokens found. Please authenticate first by running: npm run dev",
+      );
       throw new Error("No stored tokens found. Please authenticate first.");
     }
 
@@ -70,13 +73,13 @@ export class GoogleCalendarService {
       }
 
       // Parse and transform events
-      const events = response.data.items.map((event) => {
+      const events = response.data.items.map((event: any) => {
         return {
           id: event.id || "",
           title: event.summary || "Untitled Event",
           start: event.start?.dateTime || event.start?.date || "",
           end: event.end?.dateTime || event.end?.date || "",
-          attendees: (event.attendees || []).map((att) => ({
+          attendees: (event.attendees || []).map((att: any) => ({
             email: att.email || "",
             displayName: att.displayName,
             responseStatus: att.responseStatus || "needsAction",

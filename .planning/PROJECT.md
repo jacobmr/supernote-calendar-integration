@@ -33,12 +33,14 @@ Clean, findable meeting templates. Every meeting prep begins with an organized n
 ## Context
 
 **Stack:**
+
 - Google Calendar API (for meeting data)
 - Supernote unofficial API (adrianba/supernote-cloud-api) for folder/note operations
 - Self-hosted, runs as scheduled job
 - User: wife's Supernote account
 
 **Problem it solves:**
+
 - Meetings create default notes with long timestamp IDs instead of useful names
 - No automatic organization of meeting prep materials
 - Manual folder and note creation for every meeting
@@ -55,14 +57,14 @@ Meeting prep shouldn't require manual setup. A template and proper organization 
 
 ## Key Decisions
 
-| Decision | Rationale | Outcome |
-|----------|-----------|---------|
-| Use unofficial Supernote API | Official API may not exist; community implementation is available | — Pending |
-| Scheduled job (hourly) vs real-time | Simpler to implement, sufficient for meeting prep | — Pending |
-| Hybrid folder structure (Recurring + Ad-Hoc) | Recurring meetings get their own folders for consistency; ad-hoc grouped together | — Pending |
-| Template sections: Agenda, Notes, Action Items, Attendees, Decisions | Covers meeting prep, execution, and follow-up | — Pending |
-| No notification layer in v1 | Keep scope tight; focus on reliable note creation | — Pending |
+| Decision                                                             | Rationale                                                                         | Outcome   |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------------- | --------- |
+| Use unofficial Supernote API                                         | Official API may not exist; community implementation is available                 | — Pending |
+| Scheduled job (hourly) vs real-time                                  | Simpler to implement, sufficient for meeting prep                                 | — Pending |
+| Hybrid folder structure (Recurring + Ad-Hoc)                         | Recurring meetings get their own folders for consistency; ad-hoc grouped together | — Pending |
+| Template sections: Agenda, Notes, Action Items, Attendees, Decisions | Covers meeting prep, execution, and follow-up                                     | — Pending |
+| No notification layer in v1                                          | Keep scope tight; focus on reliable note creation                                 | — Pending |
 
 ---
 
-*Last updated: 2026-03-11 after initialization*
+_Last updated: 2026-03-11 after initialization_

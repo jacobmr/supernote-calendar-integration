@@ -1,4 +1,3 @@
-import { oauth2_v2 } from "@googleapis/calendar";
 import * as fs from "fs";
 import * as http from "http";
 import * as url from "url";
@@ -11,8 +10,8 @@ const TOKEN_STORE_PATH = process.env.TOKEN_STORE_PATH || "./tokens.json";
  */
 interface StoredTokens {
   access_token: string;
-  refresh_token?: string;
-  expiry_date?: number;
+  refresh_token?: string | null;
+  expiry_date?: number | null;
   token_type: string;
   scope: string;
 }

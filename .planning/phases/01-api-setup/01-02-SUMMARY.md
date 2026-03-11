@@ -25,17 +25,20 @@
 ## Technical Decisions Made
 
 ### Authentication Method
+
 - **Chosen:** Email/password-based authentication
 - **How it works:** Library internally handles SHA256(MD5(password) + randomCode) hashing
 - **Storage:** Credentials stored in .env (SUPERNOTE_EMAIL, SUPERNOTE_PASSWORD) for scheduled job access
 - **Session:** No documented token expiry; token obtained per session/job run
 
 ### API Coverage
+
 - **Implemented:** listNotebooks(), getNoteById(), authenticate(), syncFiles()
 - **Not yet available:** createNotebook() - requires reverse-engineering API or library update
 - **Limitation documented:** createNotebook() throws helpful error suggesting POST endpoint
 
 ### Testing Strategy
+
 - **Unit tests:** 18 tests for method signatures, error handling, authentication validation
 - **Integration tests:** Via verify-supernote-auth.ts script (requires real credentials)
 - **Jest configuration:** Uses mocking to handle supernote-cloud-api ESM module
@@ -44,20 +47,22 @@
 ## API Response Format
 
 **FileInfo type (returned by listNotebooks):**
+
 ```typescript
 {
-  id: string;              // File/folder unique identifier
-  directoryId: string;     // Parent folder ID
-  fileName: string;        // File or folder name
-  size: number;            // Bytes (0 for folders)
-  md5: string;             // File MD5 checksum ("" for folders)
-  isFolder: "Y" | "N";     // Folder indicator
-  createTime: number;      // Creation timestamp (Unix epoch)
-  updateTime: number;      // Last update timestamp (Unix epoch)
+  id: string; // File/folder unique identifier
+  directoryId: string; // Parent folder ID
+  fileName: string; // File or folder name
+  size: number; // Bytes (0 for folders)
+  md5: string; // File MD5 checksum ("" for folders)
+  isFolder: "Y" | "N"; // Folder indicator
+  createTime: number; // Creation timestamp (Unix epoch)
+  updateTime: number; // Last update timestamp (Unix epoch)
 }
 ```
 
 **Authentication flow:**
+
 1. Email/password → getRandomCode API call
 2. randomCode + password → SHA256(MD5(password) + randomCode)
 3. Hashed password + email → getAccessToken API call
@@ -78,6 +83,7 @@
 ## Integration Points for Phase 2
 
 The Supernote API client is ready for use in Phase 2 (Scheduled Job):
+
 - `initializeSupernoteAuth()` handles credential loading and authentication
 - `client.listNotebooks()` retrieves folder structure for Phase 3 planning
 - `client.getNoteById()` can retrieve file metadata
@@ -88,6 +94,7 @@ The Supernote API client is ready for use in Phase 2 (Scheduled Job):
 Ready for Phase 1 Plan 03 (verify both Google Calendar and Supernote APIs work together)
 
 **If createNotebook is needed for Phase 3:**
+
 - Implement via reverse-engineered endpoint: `POST /api/notebook/create`
 - Or request official API documentation from Supernote
 - Or implement workaround using Supernote web interface
@@ -102,6 +109,7 @@ Time:        1.462 s
 ```
 
 All tests cover:
+
 - Client initialization
 - Authentication requirement validation
 - API method existence
