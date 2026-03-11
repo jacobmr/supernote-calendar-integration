@@ -5,17 +5,8 @@ module.exports = {
   testMatch: ["**/*.test.ts"],
   moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
   collectCoverageFrom: ["src/**/*.ts", "!src/**/*.d.ts"],
-  extensionsToTreatAsEsm: [".ts"],
-  transform: {
-    "^.+\\.ts$": [
-      "ts-jest",
-      {
-        useESM: true,
-      },
-    ],
-  },
+  testTimeout: 10000,
   moduleNameMapper: {
-    "^(\\.{1,2}/.*)\\.js$": "$1",
+    "^supernote-cloud-api$": "<rootDir>/tests/__mocks__/supernote-cloud-api.js",
   },
-  transformIgnorePatterns: ["node_modules/(?!(supernote-cloud-api)/)"],
 };
