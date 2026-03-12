@@ -12,6 +12,7 @@ Automated integration that syncs Google Calendar with Supernote, transforming up
 ## Project Status
 
 **Phase 2 Plan 1: Meeting Detection Engine** ✅ Complete
+
 - [x] Hourly scheduled job with Google Calendar query
 - [x] Meeting change detection (new, changed, cancelled)
 - [x] Local state persistence (JSON file)
@@ -24,6 +25,7 @@ See [.planning/ROADMAP.md](.planning/ROADMAP.md) for full roadmap.
 ### Local Development
 
 1. **Clone and install:**
+
    ```bash
    git clone https://github.com/jacobmr/supernote-calendar-integration.git
    cd supernote-calendar-integration
@@ -31,6 +33,7 @@ See [.planning/ROADMAP.md](.planning/ROADMAP.md) for full roadmap.
    ```
 
 2. **Set up secrets:**
+
    ```bash
    # Copy template and fill in your credentials
    cp secrets.env.template .env.local
@@ -38,6 +41,7 @@ See [.planning/ROADMAP.md](.planning/ROADMAP.md) for full roadmap.
    ```
 
 3. **Build and run:**
+
    ```bash
    npm run build
    NODE_ENV=production npx ts-node src/index-scheduler.ts
@@ -104,13 +108,13 @@ Railway provides persistent filesystem storage for `data/meeting-state.json` and
 
 ### Other Platforms
 
-| Platform | Notes |
-|----------|-------|
-| **Render** | ✅ Free tier, persistent filesystem, native cron |
-| **Fly.io** | ✅ Free tier, Cron Machines, persistent storage |
-| **Local/Home Server** | ✅ Simple node-cron setup, no external dependencies |
-| **Vercel** | ⚠️ Requires refactoring to use Blob/Redis for state (no filesystem) |
-| **AWS Lambda** | ⚠️ Same filesystem limitation as Vercel |
+| Platform              | Notes                                                               |
+| --------------------- | ------------------------------------------------------------------- |
+| **Render**            | ✅ Free tier, persistent filesystem, native cron                    |
+| **Fly.io**            | ✅ Free tier, Cron Machines, persistent storage                     |
+| **Local/Home Server** | ✅ Simple node-cron setup, no external dependencies                 |
+| **Vercel**            | ⚠️ Requires refactoring to use Blob/Redis for state (no filesystem) |
+| **AWS Lambda**        | ⚠️ Same filesystem limitation as Vercel                             |
 
 ## Architecture
 
@@ -150,12 +154,12 @@ npm test -- --watch
 
 ## Key Decisions
 
-| Decision | Rationale |
-|----------|-----------|
-| **30-day query window** | Balance between meeting relevance and API load (600 queries/min available, 1 query/hour = safe) |
-| **JSON state file** | Simple, no database needed for Phase 2. Path: `data/meeting-state.json` |
-| **Change detection strategy** | Compare entire state, not incremental. Handles edge cases like rescheduled meetings |
-| **Hourly frequency** | Sufficient for meeting prep. Can adjust via cron expression |
+| Decision                      | Rationale                                                                                       |
+| ----------------------------- | ----------------------------------------------------------------------------------------------- |
+| **30-day query window**       | Balance between meeting relevance and API load (600 queries/min available, 1 query/hour = safe) |
+| **JSON state file**           | Simple, no database needed for Phase 2. Path: `data/meeting-state.json`                         |
+| **Change detection strategy** | Compare entire state, not incremental. Handles edge cases like rescheduled meetings             |
+| **Hourly frequency**          | Sufficient for meeting prep. Can adjust via cron expression                                     |
 
 ## Development
 
@@ -187,27 +191,32 @@ tests/
 ### Extending the Project
 
 **Phase 3: Folder & Organization System**
+
 - Implement Supernote notebook creation API
 - Map meeting ID → folder path
 - Create `/Recurring/[Meeting-Name]/` and `/Ad-Hoc/` structures
 
 **Phase 4: Note Templates & Generation**
+
 - Design meeting note sections (Agenda, Notes, Action Items, Attendees, Decisions)
 - Generate notes with human-readable names and meeting metadata
 
 ## Troubleshooting
 
 **"No meetings found"**
+
 - Check that GOOGLE_CALENDAR_ID is set correctly (usually "primary")
 - Verify Google Calendar API is enabled in your Google Cloud project
 - Confirm refresh token is valid (tokens expire, may need re-auth)
 
 **"State file not persisting"**
+
 - Verify `data/` directory exists and is writable
 - Check that `data/meeting-state.json` has correct permissions
 - Ensure scheduler has read/write access to the directory
 
 **"Cron job not running on Railway"**
+
 - Railway cron jobs only run on production deployments (not preview)
 - Check that cron job is configured in Railway dashboard
 - Review logs to see if the endpoint is being called
