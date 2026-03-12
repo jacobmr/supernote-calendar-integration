@@ -5,21 +5,26 @@ WORKDIR /app
 # Copy package files
 COPY package*.json ./
 
-# Install dependencies
-RUN npm ci --only=production && npm cache clean --force
+# Install all dependencies (including dev for TypeScript build)
+RUN npm ci && npm cache clean --force
 
-# Copy source code
+# Copy source code and config
 COPY src ./src
+COPY config ./config
 COPY tsconfig.json ./
+COPY start.sh ./
 
 # Build TypeScript
 RUN npm run build
 
+# Remove dev dependencies after build
+RUN npm prune --production
+
 # Create data directory for state persistence
 RUN mkdir -p data
 
-# Expose port (not used by scheduler, but good practice)
+# Expose Express server port
 EXPOSE 3000
 
-# Run scheduler
-CMD ["node", "dist/index-scheduler.js"]
+# Run both Express server and scheduler
+CMD ["sh", "start.sh"]

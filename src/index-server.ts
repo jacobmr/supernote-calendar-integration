@@ -2,7 +2,6 @@ import express, { Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
 import * as fs from "fs";
 import * as path from "path";
-import SupernoteAPIClient from "./services/supernote-api";
 import { authMiddleware } from "./middleware/auth";
 
 const app = express();
@@ -519,7 +518,9 @@ app.post("/api/setup", async (req: Request, res: Response): Promise<void> => {
   }
 
   try {
-    // Validate credentials against Supernote API
+    // Validate credentials against Supernote API (dynamic import for ESM compatibility)
+    const { default: SupernoteAPIClient } =
+      await import("./services/supernote-api");
     const client = new SupernoteAPIClient();
     await client.authenticate(email, password);
 
