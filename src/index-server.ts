@@ -1,11 +1,25 @@
 import express, { Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
+import * as fs from "fs";
+import * as path from "path";
 import SupernoteAPIClient from "./services/supernote-api";
 import { authMiddleware } from "./middleware/auth";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD || "admin";
+
+// Paths for state files
+const MEETING_STATE_PATH = path.join(
+  process.cwd(),
+  "data",
+  "meeting-state.json",
+);
+const SCHEDULER_STATUS_PATH = path.join(
+  process.cwd(),
+  "data",
+  "scheduler-status.json",
+);
 
 // In-memory session storage (simple single-user app)
 interface SessionData {
@@ -531,7 +545,7 @@ app.post("/api/setup", async (req: Request, res: Response): Promise<void> => {
 
 /**
  * GET /dashboard
- * Serves the dashboard (will be implemented in next plan)
+ * Serves the meeting summary dashboard
  */
 app.get("/dashboard", (req: Request, res: Response): void => {
   if (!sessionData.setupComplete) {
@@ -545,7 +559,7 @@ app.get("/dashboard", (req: Request, res: Response): void => {
     <head>
       <meta charset="UTF-8">
       <meta name="viewport" content="width=device-width, initial-scale=1.0">
-      <title>Dashboard - Supernote Calendar Integration</title>
+      <title>Meeting Summary - Supernote Calendar Integration</title>
       <style>
         * {
           margin: 0;
@@ -563,51 +577,301 @@ app.get("/dashboard", (req: Request, res: Response): void => {
           max-width: 600px;
           margin: 40px auto;
         }
+        .header {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          margin-bottom: 30px;
+        }
         h1 {
           font-size: 32px;
-          margin-bottom: 30px;
           font-weight: 600;
         }
-        .status-card {
+        .logout-link {
+          color: #999;
+          text-decoration: none;
+          font-size: 14px;
+          padding: 8px 16px;
+          border: 1px solid #444;
+          border-radius: 4px;
+          transition: all 0.2s;
+        }
+        .logout-link:hover {
+          color: #e0e0e0;
+          border-color: #666;
+        }
+        .last-updated {
+          color: #999;
+          font-size: 14px;
+          margin-bottom: 30px;
+        }
+        .status-indicator {
+          display: inline-block;
+          padding: 4px 12px;
+          border-radius: 12px;
+          font-size: 13px;
+          font-weight: 500;
+          margin-bottom: 30px;
+        }
+        .status-idle {
+          background: #1a3a1a;
+          color: #6bcf6b;
+        }
+        .status-running {
+          background: #3a3a1a;
+          color: #cfcf6b;
+        }
+        .status-never {
           background: #2d2d2d;
-          padding: 30px;
+          color: #999;
+        }
+        .metrics {
+          display: flex;
+          gap: 15px;
+          margin-bottom: 30px;
+        }
+        .metric-card {
+          flex: 1;
+          background: #2d2d2d;
+          padding: 24px 20px;
+          border-radius: 8px;
+          text-align: center;
+        }
+        .metric-count {
+          font-size: 36px;
+          font-weight: 700;
+          margin-bottom: 8px;
+        }
+        .metric-label {
+          color: #999;
+          font-size: 14px;
+        }
+        .metric-new .metric-count { color: #6bcf6b; }
+        .metric-changed .metric-count { color: #cfcf6b; }
+        .metric-cancelled .metric-count { color: #ff6b6b; }
+        .trigger-section {
+          background: #2d2d2d;
+          padding: 24px;
           border-radius: 8px;
           margin-bottom: 20px;
         }
-        .status-label {
-          color: #999;
-          font-size: 13px;
-          margin-bottom: 8px;
-          text-transform: uppercase;
-          letter-spacing: 0.5px;
-        }
-        .status-value {
-          font-size: 24px;
-          font-weight: 600;
-        }
-        .info-text {
+        .trigger-section p {
           color: #999;
           font-size: 14px;
-          margin-top: 20px;
-          padding-top: 20px;
-          border-top: 1px solid #444;
+          margin-bottom: 16px;
+        }
+        .trigger-btn {
+          padding: 10px 20px;
+          background: #0066cc;
+          color: white;
+          border: none;
+          border-radius: 4px;
+          font-size: 14px;
+          font-weight: 600;
+          cursor: pointer;
+          transition: background 0.2s;
+        }
+        .trigger-btn:hover {
+          background: #0052a3;
+        }
+        .trigger-btn:disabled {
+          opacity: 0.6;
+          cursor: not-allowed;
+        }
+        .trigger-result {
+          margin-top: 12px;
+          font-size: 14px;
+          display: none;
+        }
+        .info-footer {
+          color: #666;
+          font-size: 13px;
+          text-align: center;
+          margin-top: 40px;
+        }
+        .loading-text {
+          color: #999;
+          font-size: 14px;
+          text-align: center;
+          padding: 40px;
         }
       </style>
     </head>
     <body>
       <div class="container">
-        <h1>Dashboard</h1>
-        <div class="status-card">
-          <div class="status-label">Status</div>
-          <div class="status-value">Setup Complete</div>
-          <div class="info-text">
-            Your Supernote credentials have been validated and stored. The dashboard will display your meeting synchronization status here.
+        <div class="header">
+          <h1>Meeting Summary</h1>
+          <a href="/logout" class="logout-link">Log out</a>
+        </div>
+
+        <div id="lastUpdated" class="last-updated">Loading...</div>
+        <div id="statusBadge" class="status-indicator status-never">Loading</div>
+
+        <div class="metrics">
+          <div class="metric-card metric-new">
+            <div class="metric-count" id="countNew">-</div>
+            <div class="metric-label">New meetings</div>
+          </div>
+          <div class="metric-card metric-changed">
+            <div class="metric-count" id="countChanged">-</div>
+            <div class="metric-label">Changed</div>
+          </div>
+          <div class="metric-card metric-cancelled">
+            <div class="metric-count" id="countCancelled">-</div>
+            <div class="metric-label">Cancelled</div>
           </div>
         </div>
+
+        <div class="trigger-section">
+          <p>Manually check for calendar changes now:</p>
+          <button class="trigger-btn" id="triggerBtn" onclick="triggerScheduler()">Run scheduler now</button>
+          <div class="trigger-result" id="triggerResult"></div>
+        </div>
+
+        <div class="info-footer">
+          Scheduler checks automatically every hour
+        </div>
       </div>
+
+      <script>
+        async function loadStatus() {
+          try {
+            const response = await fetch('/api/status');
+            if (!response.ok) return;
+            const data = await response.json();
+
+            // Update last run time
+            var lastUpdatedEl = document.getElementById('lastUpdated');
+            if (data.lastRun) {
+              var d = new Date(data.lastRun);
+              var now = new Date();
+              var diffMs = now.getTime() - d.getTime();
+              var diffMins = Math.floor(diffMs / 60000);
+              var timeAgo;
+              if (diffMins < 1) timeAgo = 'just now';
+              else if (diffMins < 60) timeAgo = diffMins + ' minute' + (diffMins === 1 ? '' : 's') + ' ago';
+              else {
+                var diffHours = Math.floor(diffMins / 60);
+                timeAgo = diffHours + ' hour' + (diffHours === 1 ? '' : 's') + ' ago';
+              }
+              lastUpdatedEl.textContent = 'Last updated: ' + timeAgo;
+            } else {
+              lastUpdatedEl.textContent = 'Scheduler has not run yet';
+            }
+
+            // Update status badge
+            var badge = document.getElementById('statusBadge');
+            if (data.status === 'running') {
+              badge.textContent = 'Status: Running';
+              badge.className = 'status-indicator status-running';
+            } else if (data.lastRun) {
+              badge.textContent = 'Status: Idle';
+              badge.className = 'status-indicator status-idle';
+            } else {
+              badge.textContent = 'Status: Waiting for first run';
+              badge.className = 'status-indicator status-never';
+            }
+
+            // Update counts
+            document.getElementById('countNew').textContent = data.summary.new;
+            document.getElementById('countChanged').textContent = data.summary.changed;
+            document.getElementById('countCancelled').textContent = data.summary.cancelled;
+          } catch (err) {
+            console.error('Failed to load status:', err);
+          }
+        }
+
+        async function triggerScheduler() {
+          var btn = document.getElementById('triggerBtn');
+          var result = document.getElementById('triggerResult');
+          if (!confirm('Run scheduler now?')) return;
+
+          btn.disabled = true;
+          btn.textContent = 'Running...';
+          result.style.display = 'none';
+
+          try {
+            var response = await fetch('/api/trigger', { method: 'POST' });
+            var data = await response.json();
+            result.textContent = data.message || 'Scheduler triggered';
+            result.style.color = response.ok ? '#6bcf6b' : '#ff6b6b';
+            result.style.display = 'block';
+            if (response.ok) {
+              // Reload status after a brief delay
+              setTimeout(loadStatus, 2000);
+            }
+          } catch (err) {
+            result.textContent = 'Failed to trigger scheduler';
+            result.style.color = '#ff6b6b';
+            result.style.display = 'block';
+          }
+
+          btn.disabled = false;
+          btn.textContent = 'Run scheduler now';
+        }
+
+        // Load status on page load
+        loadStatus();
+      </script>
     </body>
     </html>
   `);
+});
+
+/**
+ * GET /api/status
+ * Returns current meeting state summary as JSON
+ */
+app.get("/api/status", (req: Request, res: Response): void => {
+  try {
+    // Try to read scheduler status (written by scheduler after each run)
+    let lastRun: string | null = null;
+    let summary = { new: 0, changed: 0, cancelled: 0 };
+    let status = "idle";
+
+    if (fs.existsSync(SCHEDULER_STATUS_PATH)) {
+      const statusData = JSON.parse(
+        fs.readFileSync(SCHEDULER_STATUS_PATH, "utf-8"),
+      );
+      lastRun = statusData.lastRun || null;
+      summary = statusData.summary || summary;
+      status = statusData.status || "idle";
+    } else if (fs.existsSync(MEETING_STATE_PATH)) {
+      // Fallback: if scheduler-status.json doesn't exist yet but meetings do,
+      // use file modification time as lastRun
+      const stats = fs.statSync(MEETING_STATE_PATH);
+      lastRun = stats.mtime.toISOString();
+    }
+
+    res.json({ lastRun, summary, status });
+  } catch (error) {
+    console.error("Error reading meeting state:", error);
+    res.json({
+      lastRun: null,
+      summary: { new: 0, changed: 0, cancelled: 0 },
+      status: "idle",
+    });
+  }
+});
+
+/**
+ * POST /api/trigger
+ * Placeholder for manual scheduler trigger (future implementation)
+ */
+app.post("/api/trigger", (req: Request, res: Response): void => {
+  res.json({
+    message:
+      "Manual trigger is not yet implemented. The scheduler runs automatically every hour.",
+  });
+});
+
+/**
+ * GET /logout
+ * Clears authentication cookie and redirects to login
+ */
+app.get("/logout", (req: Request, res: Response): void => {
+  res.clearCookie("authenticated");
+  res.redirect("/login");
 });
 
 /**

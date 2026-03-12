@@ -1,5 +1,7 @@
 import * as cron from "node-cron";
 import * as dotenv from "dotenv";
+import * as fs from "fs";
+import * as path from "path";
 import { GoogleCalendarService } from "./services/google-calendar";
 import {
   MeetingDetectorService,
@@ -115,6 +117,28 @@ async function startScheduler(): Promise<void> {
       console.log(
         `[Scheduler] Saved current state: ${currentState.length} meetings`,
       );
+
+      // Write scheduler status for the web dashboard
+      const statusData = {
+        lastRun: new Date().toISOString(),
+        summary: {
+          new: changes.newMeetings.length,
+          changed: changes.changedMeetings.length,
+          cancelled: changes.cancelledMeetings.length,
+        },
+        status: "idle",
+      };
+      const statusPath = path.join(
+        process.cwd(),
+        "data",
+        "scheduler-status.json",
+      );
+      fs.writeFileSync(
+        statusPath,
+        JSON.stringify(statusData, null, 2),
+        "utf-8",
+      );
+      console.log("[Scheduler] Updated scheduler status for dashboard");
 
       // Phase 3 will extend this to create/update folders
       console.log("[Scheduler] Folder creation: Not yet implemented (Phase 3)");
