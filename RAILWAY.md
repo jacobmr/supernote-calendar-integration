@@ -20,25 +20,100 @@ Step-by-step guide to deploy the Supernote Calendar Integration to Railway.
 
 Railway will automatically detect the Node.js project and start building.
 
-### 2. Add Environment Variables
+### 2. Gather Your Credentials
 
-Once deployed:
+Before adding environment variables to Railway, you need to collect login credentials and API keys. Here's how to get each one:
 
-1. Go to your Project → Select the service
+#### Google Calendar Credentials
+
+You'll need 3 pieces of information from Google Cloud Console:
+
+**Step 1: Open Google Cloud Console**
+1. Go to [console.cloud.google.com](https://console.cloud.google.com)
+2. If asked, click **Select a Project** → **NEW PROJECT**
+3. Name it "Supernote Calendar" and click **Create**
+
+**Step 2: Enable Google Calendar API**
+1. At the top, search for "Google Calendar API"
+2. Click the **Google Calendar API** result
+3. Click the blue **ENABLE** button
+4. Wait a few seconds for it to load
+
+**Step 3: Create OAuth Credentials**
+1. On the left sidebar, click **Credentials**
+2. Click the blue **+ CREATE CREDENTIALS** button at the top
+3. Select **OAuth Client ID**
+4. If it asks about "Consent Screen", click **Configure Consent Screen**
+   - Select **External** and click **Create**
+   - Under "App name", type: `Supernote Calendar`
+   - Under "User support email", enter your email
+   - Scroll down and click **SAVE AND CONTINUE**
+   - Click **SAVE AND CONTINUE** again (you can skip the scopes)
+   - Click **SAVE AND CONTINUE** one more time
+5. Back at the credentials page, click **+ CREATE CREDENTIALS** → **OAuth Client ID** again
+6. Select **Desktop Application** and click **Create**
+7. A popup shows your credentials. Click **Download JSON**
+
+**Step 4: Extract the credentials**
+1. Open the downloaded JSON file in a text editor (Notepad or similar)
+2. Find and copy these two values:
+   - `"client_id"` → This is your **GOOGLE_CLIENT_ID**
+   - `"client_secret"` → This is your **GOOGLE_CLIENT_SECRET**
+3. Save these somewhere safe (you'll need them in a moment)
+
+**Step 5: Get your refresh token**
+This requires running the local setup once. Contact Jacob if you need help with this step. You'll run:
+```bash
+npm run auth
+```
+This opens a browser, you click "Allow", and it generates a **GOOGLE_REFRESH_TOKEN**. Save this value.
+
+**Quick reference for Google:**
+- **GOOGLE_CLIENT_ID**: From the Google Cloud Console JSON (looks like: `123456789-abc...@developer.gserviceaccount.com`)
+- **GOOGLE_CLIENT_SECRET**: From the same JSON (looks like: `GOCSPX-abc123...`)
+- **GOOGLE_REFRESH_TOKEN**: Generated after running `npm run auth` locally
+- **GOOGLE_CALENDAR_ID**: Use `primary` (this means "your main calendar")
+
+---
+
+#### Supernote Credentials
+
+This is simple—just your Supernote account login:
+
+- **SUPERNOTE_EMAIL**: The email address you use to log into Supernote
+- **SUPERNOTE_PASSWORD**: The password for your Supernote account
+
+⚠️ **Important**: Keep your password private. Only Jacob should see this value.
+
+---
+
+### 3. Add Environment Variables to Railway
+
+Once you have all your credentials gathered:
+
+1. Go to your Railway Project → Select the service
 2. Click **Variables** tab
-3. Add the following (get values from your decrypted `secrets.env.enc` or `.env.local`):
+3. Copy and paste each value below:
 
 ```
-GOOGLE_CLIENT_ID=<your-value>
-GOOGLE_CLIENT_SECRET=<your-value>
+GOOGLE_CLIENT_ID=<paste-your-client-id-here>
+GOOGLE_CLIENT_SECRET=<paste-your-client-secret-here>
 GOOGLE_CALENDAR_ID=primary
-GOOGLE_REFRESH_TOKEN=<your-value>
-SUPERNOTE_EMAIL=<your-value>
-SUPERNOTE_PASSWORD=<your-value>
+GOOGLE_REFRESH_TOKEN=<paste-your-refresh-token-here>
+SUPERNOTE_EMAIL=<paste-your-email-here>
+SUPERNOTE_PASSWORD=<paste-your-password-here>
 NODE_ENV=production
 ```
 
-### 3. Configure Cron Job
+**How to add them in Railway:**
+1. Click the **+ New Variable** button for each one
+2. In the first field, type the variable name (e.g., `GOOGLE_CLIENT_ID`)
+3. In the second field, paste the value
+4. Click **Add**
+5. Repeat for all 7 variables
+6. Click **Save**
+
+### 4. Configure Cron Job
 
 1. In your service, go to **Settings** tab
 2. Scroll to **Cron Jobs** section
@@ -49,7 +124,7 @@ NODE_ENV=production
 
 5. Click **Save**
 
-### 4. Verify Deployment
+### 5. Verify Deployment
 
 1. Go to **Deployments** tab to see build status
 2. Once deployed, go to **Logs** tab
