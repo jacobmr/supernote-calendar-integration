@@ -1,6 +1,5 @@
 import express, { Request, Response, NextFunction } from "express";
 import cookieParser from "cookie-parser";
-import path from "path";
 import SupernoteAPIClient from "./services/supernote-api";
 import { authMiddleware } from "./middleware/auth";
 
