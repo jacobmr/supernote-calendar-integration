@@ -10,3 +10,9 @@ data/
 .idea/
 *.swp
 *.swo
+
+# Secrets management
+.env.local
+secrets.*.enc
+.env.bak.pre-sops
+tokens.json
