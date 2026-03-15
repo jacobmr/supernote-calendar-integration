@@ -1,233 +1,100 @@
 # Supernote Calendar Integration
 
-Automated integration that syncs Google Calendar with Supernote, transforming upcoming meetings into organized, pre-populated note templates.
-
-## Features
-
-- **Hourly Meeting Detection** - Queries Google Calendar every hour for upcoming meetings
-- **Change Detection** - Identifies new, modified, and cancelled meetings
-- **State Persistence** - Maintains meeting state to detect changes across runs
-- **Extensible Architecture** - Ready for meeting note template generation and folder organization
-
-## Project Status
-
-**Phase 2 Plan 1: Meeting Detection Engine** ✅ Complete
-
-- [x] Hourly scheduled job with Google Calendar query
-- [x] Meeting change detection (new, changed, cancelled)
-- [x] Local state persistence (JSON file)
-- [ ] Phase 3: Folder & organization system (pending Supernote API constraints)
-
-See [.planning/ROADMAP.md](.planning/ROADMAP.md) for full roadmap.
+Automatically syncs Google Calendar with Supernote by creating organized folder structures and pre-populated meeting note templates. When a meeting is upcoming, a ready-to-use note is created in the right folder — no manual setup needed.
 
 ## Quick Start
 
-### Local Development
-
-1. **Clone and install:**
-
-   ```bash
-   git clone https://github.com/jacobmr/supernote-calendar-integration.git
-   cd supernote-calendar-integration
-   npm install
-   ```
-
-2. **Set up secrets:**
-
-   ```bash
-   # Copy template and fill in your credentials
-   cp secrets.env.template .env.local
-   # Edit .env.local with your actual credentials
-   ```
-
-3. **Build and run:**
-
-   ```bash
-   npm run build
-   NODE_ENV=production npx ts-node src/index-scheduler.ts
-   ```
-
-4. **View results:**
-   ```bash
-   cat data/meeting-state.json
-   ```
-
-### With SOPS (Encrypted Secrets)
-
-If using SOPS for secrets management:
-
 ```bash
-# Edit encrypted secrets
-sops edit --input-type dotenv --output-type dotenv secrets.env.enc
-
-# Run with decrypted env vars
-eval "$(sops decrypt --input-type dotenv --output-type dotenv secrets.env.enc)" && npm run build && NODE_ENV=production node dist/index-scheduler.js
+cp .env.example .env
+# Fill in your Google OAuth2 and Supernote credentials (see Configuration below)
+docker compose up -d
 ```
 
-## Environment Variables
+The dashboard is available at `http://localhost:3000`. Default password: `admin`.
 
-```env
-# Google Calendar OAuth2
-GOOGLE_CLIENT_ID=<your-client-id>
-GOOGLE_CLIENT_SECRET=<your-client-secret>
-GOOGLE_CALENDAR_ID=primary
-GOOGLE_REFRESH_TOKEN=<your-refresh-token>
+## Configuration
 
-# Supernote API (unofficial)
-SUPERNOTE_EMAIL=<your-email>
-SUPERNOTE_PASSWORD=<your-password>
-```
+| Variable | Required | Default | Description |
+|---|---|---|---|
+| `GOOGLE_CLIENT_ID` | Yes | — | Google OAuth2 client ID |
+| `GOOGLE_CLIENT_SECRET` | Yes | — | Google OAuth2 client secret |
+| `GOOGLE_REDIRECT_URI` | No | `http://localhost:3000/oauth/callback` | OAuth2 redirect URI |
+| `TOKEN_STORE_PATH` | No | `./tokens.json` | Path to store OAuth2 tokens |
+| `SUPERNOTE_EMAIL` | No | — | Supernote account email |
+| `SUPERNOTE_PASSWORD` | No | — | Supernote account password |
+| `DASHBOARD_PASSWORD` | No | `admin` | Password for web dashboard |
+| `PORT` | No | `3000` | Server port |
+| `TZ` | No | `America/New_York` | Timezone for scheduling |
+| `LOG_LEVEL` | No | — | Set to `debug` for verbose logging |
 
-See `secrets.env.template` for full list.
+If Supernote credentials are not set, the scheduler still detects calendar changes but skips folder/note creation.
 
-## Deployment
+## Google Calendar Setup
 
-### Railway (Recommended)
-
-Railway provides persistent filesystem storage for `data/meeting-state.json` and native cron job support.
-
-1. **Create Railway project from this repo:**
-   - Go to [dashboard.railway.app](https://dashboard.railway.app)
-   - New Project → Deploy from GitHub
-   - Select this repository
-
-2. **Add environment variables:**
-   - Railway → Project → Variables
-   - Paste decrypted secrets from `secrets.env.enc`
-
-3. **Configure cron job:**
-   - Railway → Your Service → Settings → Cron Jobs
-   - Schedule: `0 * * * *` (hourly at :00)
-   - Command: `npm run build && node dist/index-scheduler.js`
-
-4. **Monitor:**
-   - Railway → Logs tab to watch for hourly executions
-   - Look for: "New meetings: X, Changed: Y, Cancelled: Z"
-
-**Cost:** Free tier covers ~700 monthly runs (50-200ms each)
-
-### Other Platforms
-
-| Platform              | Notes                                                               |
-| --------------------- | ------------------------------------------------------------------- |
-| **Render**            | ✅ Free tier, persistent filesystem, native cron                    |
-| **Fly.io**            | ✅ Free tier, Cron Machines, persistent storage                     |
-| **Local/Home Server** | ✅ Simple node-cron setup, no external dependencies                 |
-| **Vercel**            | ⚠️ Requires refactoring to use Blob/Redis for state (no filesystem) |
-| **AWS Lambda**        | ⚠️ Same filesystem limitation as Vercel                             |
+1. Go to [Google Cloud Console](https://console.cloud.google.com) and create a project
+2. Enable the **Google Calendar API**
+3. Create **OAuth2 credentials** (Desktop application type)
+4. Copy the Client ID and Client Secret into your `.env` file
+5. Start the app and complete the OAuth2 consent flow in your browser
+6. Tokens are persisted to `tokens.json` and refresh automatically
 
 ## Architecture
 
-```
-GoogleCalendarService (Phase 1)
-    ↓
-MeetingDetectorService
-    → Queries 30-day window
-    → Returns structured meeting data
-    ↓
-StateManager
-    → Loads previous state from disk
-    → Detects changes (new/changed/cancelled)
-    → Saves current state
-    ↓
-Scheduler (node-cron)
-    → Runs hourly at :00
-    → Logs change summaries
-    ↓
-[Phase 3] Folder creation & note generation
-```
+Single Docker container running two processes via `start.sh`:
 
-## Testing
+- **Express server** — Web dashboard for status, setup, and manual triggers
+- **Cron scheduler** — Hourly job that queries Google Calendar, detects meeting changes, and creates Supernote folders/notes
+
+State is stored as JSON files in the `data/` directory (mounted as a Docker volume):
+
+- `meeting-state.json` — Last known meeting state for change detection
+- `scheduler-status.json` — Last run status for the dashboard
+- `folder-mappings.json` — Meeting-to-folder mapping cache
+
+## Manual Trigger
+
+Run the scheduler immediately instead of waiting for the next hourly cycle:
 
 ```bash
-# Run all tests
-npm test
-
-# Run specific test suite
-npm test -- meeting-detector
-
-# Watch mode
-npm test -- --watch
+curl -X POST http://localhost:3000/api/trigger \
+  -b "authenticated=true"
 ```
 
-**Test Results:** 37/37 passing (28 Phase 1 + 9 Phase 2 change detection tests)
+Requires authentication. Use the dashboard button for browser-based triggering.
 
-## Key Decisions
+## Health Check
 
-| Decision                      | Rationale                                                                                       |
-| ----------------------------- | ----------------------------------------------------------------------------------------------- |
-| **30-day query window**       | Balance between meeting relevance and API load (600 queries/min available, 1 query/hour = safe) |
-| **JSON state file**           | Simple, no database needed for Phase 2. Path: `data/meeting-state.json`                         |
-| **Change detection strategy** | Compare entire state, not incremental. Handles edge cases like rescheduled meetings             |
-| **Hourly frequency**          | Sufficient for meeting prep. Can adjust via cron expression                                     |
+```bash
+curl http://localhost:3000/health
+# {"status":"ok","uptime":12345.678}
+```
+
+Docker Compose includes an automatic health check that polls this endpoint every 30 seconds.
 
 ## Development
 
-### Project Structure
-
+```bash
+npm install
+npm run build
+npm test
 ```
-src/
-├── services/
-│   ├── google-calendar.ts      # Google Calendar API client (Phase 1)
-│   ├── supernote-api.ts        # Supernote unofficial API (Phase 1)
-│   ├── meeting-detector.ts     # Meeting query service (Phase 2)
-│   ├── state-manager.ts        # State persistence & change detection (Phase 2)
-│   └── constants.ts            # Rate limits, retry logic
-├── index-scheduler.ts          # Cron job entry point (Phase 2)
-└── types/
-    └── index.ts                # Shared type definitions
-
-tests/
-├── google-calendar.test.ts     # API integration tests (Phase 1)
-├── meeting-detector.test.ts    # Change detection tests (Phase 2)
-└── ...
-
-.planning/
-├── ROADMAP.md                  # Phase breakdown and progress
-├── STATE.md                    # Current project state
-└── phases/                     # Detailed phase plans and summaries
-```
-
-### Extending the Project
-
-**Phase 3: Folder & Organization System**
-
-- Implement Supernote notebook creation API
-- Map meeting ID → folder path
-- Create `/Recurring/[Meeting-Name]/` and `/Ad-Hoc/` structures
-
-**Phase 4: Note Templates & Generation**
-
-- Design meeting note sections (Agenda, Notes, Action Items, Attendees, Decisions)
-- Generate notes with human-readable names and meeting metadata
 
 ## Troubleshooting
 
-**"No meetings found"**
+**Missing credentials at startup**
+The scheduler exits with an error if `GOOGLE_CLIENT_ID` or `GOOGLE_CLIENT_SECRET` are not set. Check your `.env` file.
 
-- Check that GOOGLE_CALENDAR_ID is set correctly (usually "primary")
-- Verify Google Calendar API is enabled in your Google Cloud project
-- Confirm refresh token is valid (tokens expire, may need re-auth)
+**OAuth2 token expired**
+Tokens refresh automatically. If refresh fails, delete `tokens.json` and restart to re-authenticate.
 
-**"State file not persisting"**
+**Supernote API errors**
+The unofficial Supernote API may occasionally return errors. The scheduler retries with exponential backoff (up to 3 retries). Check logs with `docker compose logs -f`.
 
-- Verify `data/` directory exists and is writable
-- Check that `data/meeting-state.json` has correct permissions
-- Ensure scheduler has read/write access to the directory
+**Scheduler shows "unhealthy"**
+After 3 consecutive hourly failures, the scheduler logs an unhealthy warning. It keeps running — the next successful run resets the counter. Check `data/scheduler-status.json` for the last error.
 
-**"Cron job not running on Railway"**
+**Container won't start**
+Ensure `data/` directory exists and is writable. The app creates it automatically, but Docker volume mounts may need correct permissions.
 
-- Railway cron jobs only run on production deployments (not preview)
-- Check that cron job is configured in Railway dashboard
-- Review logs to see if the endpoint is being called
-
-## Resources
-
-- [Google Calendar API Docs](https://developers.google.com/calendar)
-- [Supernote Cloud API (Unofficial)](https://github.com/adrianba/supernote-cloud-api)
-- [Railway Cron Jobs](https://docs.railway.app/features/cron-jobs)
-- [node-cron Documentation](https://github.com/kelektiv/node-cron)
-
-## License
-
-MIT
+**Port already in use**
+Change the `PORT` variable in `.env` and update the port mapping in `docker-compose.yml`.

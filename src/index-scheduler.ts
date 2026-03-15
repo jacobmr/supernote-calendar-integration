@@ -13,13 +13,21 @@ import { FolderOrganizer } from "./services/folder-organizer";
 import { NoteCreator } from "./services/note-creator";
 import { NoteTemplateGenerator } from "./services/note-template-generator";
 import SupernoteAPIClient from "./services/supernote-api";
-import { GOOGLE_CALENDAR_API } from "./services/constants";
+import {
+  GOOGLE_CALENDAR_API,
+  RETRY_STRATEGY,
+  getBackoffDelay,
+} from "./services/constants";
 import { createLogger } from "./utils/logger";
 
 // Load environment variables
 dotenv.config();
 
 const log = createLogger("Scheduler");
+
+// Consecutive failure tracking for error recovery
+let consecutiveFailures = 0;
+const MAX_CONSECUTIVE_FAILURES = 3;
 
 /**
  * Result of a single pipeline run
@@ -263,12 +271,62 @@ async function startScheduler(): Promise<void> {
 
   // Schedule job to run every hour at :00
   const job = cron.schedule("0 * * * *", async () => {
+    let lastError: string | undefined;
+
+    // Retry loop with exponential backoff
+    for (let attempt = 0; attempt <= RETRY_STRATEGY.MAX_ATTEMPTS; attempt++) {
+      try {
+        if (attempt > 0) {
+          const delay = getBackoffDelay(attempt - 1);
+          log.warn(
+            `Retry attempt ${attempt}/${RETRY_STRATEGY.MAX_ATTEMPTS} after ${delay}ms`,
+          );
+          await new Promise((resolve) => setTimeout(resolve, delay));
+        }
+
+        await runPipelineOnce();
+
+        // Success — reset consecutive failure counter
+        consecutiveFailures = 0;
+        return;
+      } catch (error) {
+        lastError = error instanceof Error ? error.message : "Unknown error";
+        log.error(`Job failed (attempt ${attempt + 1}): ${lastError}`);
+      }
+    }
+
+    // All retries exhausted — track consecutive failure
+    consecutiveFailures++;
+    log.error(
+      `Job failed after ${RETRY_STRATEGY.MAX_ATTEMPTS + 1} attempts: ${lastError}`,
+    );
+
+    if (consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
+      log.error(
+        `Scheduler unhealthy: ${MAX_CONSECUTIVE_FAILURES} consecutive failures`,
+      );
+    }
+
+    // Write failure status so dashboard shows error state
+    const statusPath = path.join(
+      process.cwd(),
+      "data",
+      "scheduler-status.json",
+    );
+    const failureStatus = {
+      status: "error",
+      lastError: lastError,
+      lastRun: new Date().toISOString(),
+      consecutiveFailures,
+    };
     try {
-      await runPipelineOnce();
-    } catch (error) {
-      const errorMessage =
-        error instanceof Error ? error.message : "Unknown error";
-      log.error(`Job failed: ${errorMessage}`);
+      fs.writeFileSync(
+        statusPath,
+        JSON.stringify(failureStatus, null, 2),
+        "utf-8",
+      );
+    } catch {
+      log.error("Failed to write scheduler-status.json");
     }
   });
 
