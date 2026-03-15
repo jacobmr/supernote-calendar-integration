@@ -8,6 +8,9 @@ import {
   MeetingData,
 } from "./services/meeting-detector";
 import { StateManager, PersistedMeeting } from "./services/state-manager";
+import { FolderMappingStore } from "./services/folder-mapping-store";
+import { FolderOrganizer } from "./services/folder-organizer";
+import SupernoteAPIClient from "./services/supernote-api";
 import { GOOGLE_CALENDAR_API } from "./services/constants";
 
 // Load environment variables
@@ -112,6 +115,56 @@ async function startScheduler(): Promise<void> {
         }
       }
 
+      // Folder creation for new meetings
+      let foldersCreated = 0;
+      let foldersSkipped = 0;
+
+      if (changes.newMeetings.length > 0) {
+        const supernoteEmail = process.env.SUPERNOTE_EMAIL;
+        const supernotePassword = process.env.SUPERNOTE_PASSWORD;
+
+        if (supernoteEmail && supernotePassword) {
+          try {
+            // Build MeetingData[] for new meetings by matching IDs back
+            const newMeetingIds = new Set(changes.newMeetings.map((m) => m.id));
+            const newMeetingData = meetings.filter((m) =>
+              newMeetingIds.has(m.id),
+            );
+
+            const supernoteClient = new SupernoteAPIClient();
+            await supernoteClient.authenticate(
+              supernoteEmail,
+              supernotePassword,
+            );
+
+            const mappingStore = new FolderMappingStore();
+            const folderOrganizer = new FolderOrganizer(
+              supernoteClient,
+              mappingStore,
+            );
+
+            const folderResult =
+              await folderOrganizer.processNewMeetings(newMeetingData);
+            foldersCreated = folderResult.created;
+            foldersSkipped = folderResult.skipped;
+
+            console.log(
+              `[Scheduler] Folders created: ${foldersCreated}, skipped: ${foldersSkipped}`,
+            );
+          } catch (error) {
+            const folderErrorMessage =
+              error instanceof Error ? error.message : "Unknown error";
+            console.error(
+              `[Scheduler] Folder creation failed: ${folderErrorMessage}`,
+            );
+          }
+        } else {
+          console.warn(
+            "[Scheduler] Supernote credentials not configured — skipping folder creation",
+          );
+        }
+      }
+
       // Save current state for next run
       stateManager.saveState(currentState);
       console.log(
@@ -125,6 +178,8 @@ async function startScheduler(): Promise<void> {
           new: changes.newMeetings.length,
           changed: changes.changedMeetings.length,
           cancelled: changes.cancelledMeetings.length,
+          foldersCreated,
+          foldersSkipped,
         },
         status: "idle",
       };
@@ -139,9 +194,6 @@ async function startScheduler(): Promise<void> {
         "utf-8",
       );
       console.log("[Scheduler] Updated scheduler status for dashboard");
-
-      // Phase 3 will extend this to create/update folders
-      console.log("[Scheduler] Folder creation: Not yet implemented (Phase 3)");
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
@@ -178,4 +230,6 @@ export {
   MeetingDetectorService,
   GoogleCalendarService,
   StateManager,
+  FolderOrganizer,
+  FolderMappingStore,
 };
