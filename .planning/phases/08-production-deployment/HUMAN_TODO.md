@@ -37,6 +37,13 @@ After completing the above:
 
 Then provide the credential values at the checkpoint prompt.
 
+## Done: ZeroTier Network Access
+
+- [x] ZeroTier installed on server (node `444d2b0981`)
+- [x] Joined JMR Network (`b6079f73c64ae800`)
+- [x] Authorized — private IP: **172.28.241.3**
+- SSH via ZeroTier: `ssh root@172.28.241.3`
+
 ## Open Question
 
 **Supernote credentials as env vars vs dashboard UI:** Currently the app reads `SUPERNOTE_EMAIL`/`SUPERNOTE_PASSWORD` from environment variables. You suggested capturing these through a dashboard login flow instead. For v1.1, we'll proceed with env vars. Dashboard-based credential management can be a future enhancement.
