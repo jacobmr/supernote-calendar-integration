@@ -108,7 +108,7 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | ------------------------------- | -------------- | ----------- | ---------- |
 | 1. API Setup & Exploration      | 3/3            | COMPLETE    | 2026-03-11 |
 | 2. Meeting Detection Engine     | 1/1            | COMPLETE    | 2026-03-11 |
-| 3. Folder & Organization System | 0/2            | Ready       | -          |
+| 3. Folder & Organization System | 1/2            | In progress | -          |
 | 4. Note Templates & Generation  | 0/2            | Not started | -          |
 | 5. End-to-End Integration       | 0/2            | Not started | -          |
 | 6. Deployment & Polish          | 0/2            | Not started | -          |
