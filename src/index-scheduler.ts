@@ -14,9 +14,12 @@ import { NoteCreator } from "./services/note-creator";
 import { NoteTemplateGenerator } from "./services/note-template-generator";
 import SupernoteAPIClient from "./services/supernote-api";
 import { GOOGLE_CALENDAR_API } from "./services/constants";
+import { createLogger } from "./utils/logger";
 
 // Load environment variables
 dotenv.config();
+
+const log = createLogger("Scheduler");
 
 /**
  * Result of a single pipeline run
@@ -41,9 +44,7 @@ export interface PipelineResult {
  */
 export async function runPipelineOnce(): Promise<PipelineResult> {
   const startTime = new Date();
-  console.log(
-    `\n[Scheduler] Job started at ${startTime.toISOString().substring(11, 19)} UTC`,
-  );
+  log.info(`Job started at ${startTime.toISOString().substring(11, 19)} UTC`);
 
   // Initialize services
   const calendarService = new GoogleCalendarService();
@@ -52,18 +53,14 @@ export async function runPipelineOnce(): Promise<PipelineResult> {
 
   // Load previous state
   const previousState = stateManager.loadState();
-  console.log(
-    `[Scheduler] Loaded previous state: ${previousState.length} meetings`,
-  );
+  log.info(`Loaded previous state: ${previousState.length} meetings`);
 
   // Query upcoming meetings for next 30 days
   const meetings = await meetingDetector.queryUpcomingMeetings({
     days: 30,
   });
 
-  console.log(
-    `[Scheduler] Found ${meetings.length} upcoming meetings in next 30 days`,
-  );
+  log.info(`Found ${meetings.length} upcoming meetings in next 30 days`);
 
   // Transform API response to persistent format
   const now = Date.now();
@@ -81,45 +78,39 @@ export async function runPipelineOnce(): Promise<PipelineResult> {
   const changes = stateManager.detectChanges(previousState, currentState);
 
   // Log change summary
-  console.log("[Scheduler] === Change Detection Summary ===");
-  console.log(`[Scheduler] New meetings: ${changes.newMeetings.length}`);
+  log.info("=== Change Detection Summary ===");
+  log.info(`New meetings: ${changes.newMeetings.length}`);
   if (changes.newMeetings.length > 0) {
     changes.newMeetings.slice(0, 3).forEach((meeting) => {
-      console.log(
-        `[Scheduler]   + ${meeting.title} (${meeting.startTime.substring(0, 10)})`,
-      );
+      log.info(`  + ${meeting.title} (${meeting.startTime.substring(0, 10)})`);
     });
     if (changes.newMeetings.length > 3) {
-      console.log(
-        `[Scheduler]   + ... and ${changes.newMeetings.length - 3} more new meetings`,
+      log.info(
+        `  + ... and ${changes.newMeetings.length - 3} more new meetings`,
       );
     }
   }
 
-  console.log(
-    `[Scheduler] Changed meetings: ${changes.changedMeetings.length}`,
-  );
+  log.info(`Changed meetings: ${changes.changedMeetings.length}`);
   if (changes.changedMeetings.length > 0) {
     changes.changedMeetings.slice(0, 3).forEach((meeting) => {
-      console.log(`[Scheduler]   ~ ${meeting.title} (time/details changed)`);
+      log.info(`  ~ ${meeting.title} (time/details changed)`);
     });
     if (changes.changedMeetings.length > 3) {
-      console.log(
-        `[Scheduler]   ~ ... and ${changes.changedMeetings.length - 3} more changed meetings`,
+      log.info(
+        `  ~ ... and ${changes.changedMeetings.length - 3} more changed meetings`,
       );
     }
   }
 
-  console.log(
-    `[Scheduler] Cancelled meetings: ${changes.cancelledMeetings.length}`,
-  );
+  log.info(`Cancelled meetings: ${changes.cancelledMeetings.length}`);
   if (changes.cancelledMeetings.length > 0) {
     changes.cancelledMeetings.slice(0, 3).forEach((meeting) => {
-      console.log(`[Scheduler]   - ${meeting.title} (cancelled)`);
+      log.info(`  - ${meeting.title} (cancelled)`);
     });
     if (changes.cancelledMeetings.length > 3) {
-      console.log(
-        `[Scheduler]   - ... and ${changes.cancelledMeetings.length - 3} more cancelled meetings`,
+      log.info(
+        `  - ... and ${changes.cancelledMeetings.length - 3} more cancelled meetings`,
       );
     }
   }
@@ -154,8 +145,8 @@ export async function runPipelineOnce(): Promise<PipelineResult> {
         foldersCreated = folderResult.created;
         foldersSkipped = folderResult.skipped;
 
-        console.log(
-          `[Scheduler] Folders created: ${foldersCreated}, skipped: ${foldersSkipped}`,
+        log.info(
+          `Folders created: ${foldersCreated}, skipped: ${foldersSkipped}`,
         );
 
         // Create notes for new meetings (after folders exist)
@@ -172,35 +163,27 @@ export async function runPipelineOnce(): Promise<PipelineResult> {
           notesCreated = noteResult.created;
           notesSkipped = noteResult.skipped;
 
-          console.log(
-            `[Scheduler] Notes created: ${notesCreated}, skipped: ${notesSkipped}`,
-          );
+          log.info(`Notes created: ${notesCreated}, skipped: ${notesSkipped}`);
         } catch (error) {
           const noteErrorMessage =
             error instanceof Error ? error.message : "Unknown error";
-          console.error(
-            `[Scheduler] Note creation failed: ${noteErrorMessage}`,
-          );
+          log.error(`Note creation failed: ${noteErrorMessage}`);
         }
       } catch (error) {
         const folderErrorMessage =
           error instanceof Error ? error.message : "Unknown error";
-        console.error(
-          `[Scheduler] Folder creation failed: ${folderErrorMessage}`,
-        );
+        log.error(`Folder creation failed: ${folderErrorMessage}`);
       }
     } else {
-      console.warn(
-        "[Scheduler] Supernote credentials not configured — skipping folder and note creation",
+      log.warn(
+        "Supernote credentials not configured — skipping folder and note creation",
       );
     }
   }
 
   // Save current state for next run
   stateManager.saveState(currentState);
-  console.log(
-    `[Scheduler] Saved current state: ${currentState.length} meetings`,
-  );
+  log.info(`Saved current state: ${currentState.length} meetings`);
 
   const endTime = new Date();
   const duration = endTime.getTime() - startTime.getTime();
@@ -227,10 +210,42 @@ export async function runPipelineOnce(): Promise<PipelineResult> {
     JSON.stringify({ ...result, status: "idle" }, null, 2),
     "utf-8",
   );
-  console.log("[Scheduler] Updated scheduler status for dashboard");
-  console.log(`[Scheduler] Job completed in ${duration}ms`);
+  log.info("Updated scheduler status for dashboard");
+  log.info(`Job completed in ${duration}ms`);
 
   return result;
+}
+
+/**
+ * Validates required and optional environment variables at startup.
+ * Exits the process if required variables are missing.
+ */
+function validateStartup(): void {
+  // Check required env vars
+  const requiredVars = ["GOOGLE_CLIENT_ID", "GOOGLE_CLIENT_SECRET"];
+  const missingRequired = requiredVars.filter((v) => !process.env[v]);
+
+  if (missingRequired.length > 0) {
+    log.error(
+      `Missing required environment variables: ${missingRequired.join(", ")}`,
+    );
+    log.error(
+      "Set these in .env or as environment variables. See .env.example for reference.",
+    );
+    process.exit(1);
+  }
+
+  // Check optional env vars
+  const optionalVars = ["SUPERNOTE_EMAIL", "SUPERNOTE_PASSWORD"];
+  const missingOptional = optionalVars.filter((v) => !process.env[v]);
+
+  if (missingOptional.length > 0) {
+    log.warn("Supernote credentials not set — folder/note creation disabled");
+  }
+
+  // Ensure data directory exists
+  fs.mkdirSync("data", { recursive: true });
+  log.debug("Data directory verified");
 }
 
 /**
@@ -241,7 +256,10 @@ export async function runPipelineOnce(): Promise<PipelineResult> {
  * Detects new, changed, and cancelled meetings using state persistence
  */
 async function startScheduler(): Promise<void> {
-  console.log("[Scheduler] Initializing meeting detection scheduler...");
+  log.info("Initializing meeting detection scheduler...");
+
+  // Validate environment before scheduling
+  validateStartup();
 
   // Schedule job to run every hour at :00
   const job = cron.schedule("0 * * * *", async () => {
@@ -250,15 +268,15 @@ async function startScheduler(): Promise<void> {
     } catch (error) {
       const errorMessage =
         error instanceof Error ? error.message : "Unknown error";
-      console.error(`[Scheduler] Job failed: ${errorMessage}`);
+      log.error(`Job failed: ${errorMessage}`);
     }
   });
 
-  console.log("[Scheduler] Meeting detection scheduler started");
-  console.log("[Scheduler] Runs every hour at :00");
-  console.log("[Scheduler] Query window: 30 days");
-  console.log("[Scheduler] State file: data/meeting-state.json");
-  console.log("[Scheduler] To stop: press Ctrl+C");
+  log.info("Meeting detection scheduler started");
+  log.info("Runs every hour at :00");
+  log.info("Query window: 30 days");
+  log.info("State file: data/meeting-state.json");
+  log.info("To stop: press Ctrl+C");
 
   // Keep process running
   return new Promise(() => {
@@ -269,13 +287,14 @@ async function startScheduler(): Promise<void> {
 // Start scheduler if run directly
 if (require.main === module) {
   startScheduler().catch((error) => {
-    console.error("[Scheduler] Fatal error:", error);
+    log.error(`Fatal error: ${error}`);
     process.exit(1);
   });
 }
 
 export {
   startScheduler,
+  validateStartup,
   MeetingDetectorService,
   GoogleCalendarService,
   StateManager,

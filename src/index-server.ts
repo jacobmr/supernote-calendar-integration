@@ -4,6 +4,9 @@ import * as fs from "fs";
 import * as path from "path";
 import { authMiddleware } from "./middleware/auth";
 import { runPipelineOnce } from "./index-scheduler";
+import { createLogger } from "./utils/logger";
+
+const log = createLogger("Server");
 
 const app = express();
 const PORT = process.env.PORT || 3000;
@@ -542,13 +545,13 @@ app.post("/api/setup", async (req: Request, res: Response): Promise<void> => {
     sessionData.supernotePassword = password;
     sessionData.setupComplete = true;
 
-    console.log(`Setup complete for ${email}`);
+    log.info(`Setup complete for ${email}`);
     res.status(200).json({
       success: true,
       message: "Credentials validated successfully",
     });
   } catch (error) {
-    console.error("Supernote authentication failed:", error);
+    log.error(`Supernote authentication failed: ${error}`);
 
     res.status(400).json({
       error:
@@ -859,7 +862,7 @@ app.get("/api/status", (req: Request, res: Response): void => {
 
     res.json({ lastRun, summary, status });
   } catch (error) {
-    console.error("Error reading meeting state:", error);
+    log.error(`Error reading meeting state: ${error}`);
     res.json({
       lastRun: null,
       summary: { new: 0, changed: 0, cancelled: 0 },
@@ -888,7 +891,7 @@ app.post("/api/trigger", async (req: Request, res: Response): Promise<void> => {
   } catch (error) {
     const errorMessage =
       error instanceof Error ? error.message : "Unknown error";
-    console.error("[Trigger] Pipeline failed:", errorMessage);
+    log.error(`Pipeline failed: ${errorMessage}`);
     res.status(500).json({
       triggered: true,
       error: errorMessage,
@@ -918,28 +921,28 @@ app.use((req: Request, res: Response): void => {
  * Error handler
  */
 app.use((err: Error, req: Request, res: Response, next: NextFunction): void => {
-  console.error("Server error:", err);
+  log.error(`Server error: ${err}`);
   res.status(500).send("Internal Server Error");
 });
 
 // Start server
 const server = app.listen(PORT, () => {
-  console.log(`Server running on http://localhost:${PORT}`);
+  log.info(`Server running on http://localhost:${PORT}`);
 });
 
 // Graceful shutdown when parent process exits
 process.on("SIGTERM", () => {
-  console.log("SIGTERM received, shutting down gracefully...");
+  log.info("SIGTERM received, shutting down gracefully...");
   server.close(() => {
-    console.log("Server closed");
+    log.info("Server closed");
     process.exit(0);
   });
 });
 
 process.on("SIGINT", () => {
-  console.log("SIGINT received, shutting down gracefully...");
+  log.info("SIGINT received, shutting down gracefully...");
   server.close(() => {
-    console.log("Server closed");
+    log.info("Server closed");
     process.exit(0);
   });
 });
