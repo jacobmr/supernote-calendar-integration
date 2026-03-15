@@ -1,17 +1,17 @@
 # Project State - Supernote Calendar Integration
 
 **Last Updated**: 2026-03-15
-**Current Phase**: Phase 5 complete
+**Current Phase**: Phase 6 in progress
 **Total Phases**: 6
 
 ## Current Position
 
-Phase: 5 of 6 (End-to-End Integration)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-03-15 - Completed 05-02-PLAN.md
+Phase: 6 of 6 (Deployment & Polish)
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-03-15 - Completed 06-01-PLAN.md
 
-Progress: ███████████░ 92%
+Progress: ████████████░ 96%
 
 ## Phase Completion Status
 
@@ -28,10 +28,17 @@ Progress: ███████████░ 92%
 | 04-note-templates    | 01     | ✅ Complete     | 28757de     |
 | 04-note-templates    | 02     | ✅ Complete     | 1afebfa     |
 | 05-integration       | 01     | ✅ Complete     | 77c90f3     |
-| **05-integration**   | **02** | **✅ Complete** | **7c656c1** |
-| 06-deployment        | -      | ⏳ Pending      | -           |
+| 05-integration       | 02     | ✅ Complete     | 7c656c1     |
+| **06-deployment**    | **01** | **✅ Complete** | **e8a0622** |
+| 06-deployment        | 02     | ⏳ Pending      | -           |
 
 ## Key Decisions Made
+
+### From Phase 6
+
+1. **Health endpoint before authMiddleware**: Docker health check needs unauthenticated access
+2. **In-memory concurrency flag for trigger**: No external locking needed in single-container app
+3. **Extracted runPipelineOnce()**: Shared function between scheduler cron and HTTP trigger
 
 ### From Phase 5
 
@@ -51,7 +58,7 @@ Progress: ███████████░ 92%
 
 1. **Separate FolderMappingStore**: Kept separate from StateManager — folder mapping is different concern
 2. **RecurringFolderMapping keyed by recurringEventId**: All instances share one folder
-3. **Ad-hoc meetings share Calendar/Ad-Hoc/**: No per-meeting subfolder (notes go here in Phase 4)
+3. **Ad-hoc meetings share Calendar/Ad-Hoc/**: No per-meeting subfolder
 4. **Graceful degradation**: Missing Supernote credentials → warning, scheduler continues
 
 ### From Phase 2.2
@@ -95,6 +102,9 @@ Progress: ███████████░ 92%
 ✅ Recurring meeting pipeline integration tested
 ✅ Ad-hoc meeting pipeline integration tested
 ✅ Pipeline edge cases tested (error isolation, graceful degradation)
+✅ Docker Compose single-command startup
+✅ Health check endpoint for container monitoring
+✅ Manual trigger endpoint for on-demand pipeline runs
 
 ## Architecture Decisions
 
@@ -104,16 +114,18 @@ Progress: ███████████░ 92%
 - **Dashboard**: Inline HTML/CSS/JS, dark mode
 - **Scheduler**: node-cron (every hour at :00)
 - **State Storage**: JSON files (meeting-state.json, scheduler-status.json, folder-mappings.json)
-- **Container**: Single Docker container with start.sh
+- **Container**: Single Docker container with start.sh, docker-compose.yml
+- **Health Check**: GET /health (before auth, returns uptime)
+- **Manual Trigger**: POST /api/trigger (calls runPipelineOnce with concurrency guard)
 - **Folder Organizer**: Creates Calendar/Recurring/[Name] and Calendar/Ad-Hoc in Supernote
 - **File Upload**: 3-step S3 flow (apply → PUT → finish) with MD5 verification
 - **Note Templates**: Markdown generation with Intl.DateTimeFormat formatting
 - **Note Creator**: Orchestrates template generation + upload with duplicate prevention
 - **Integration Tests**: Factory-based helpers with manual mock objects
 
-### Next (Phase 6)
+### Next (Phase 6 Plan 2)
 
-- Self-hosted deployment setup, documentation, and operational readiness
+- Documentation, error handling, logging, and operational improvements
 
 ## Performance Baselines
 
@@ -123,10 +135,10 @@ Progress: ███████████░ 92%
 
 ## Session Continuity
 
-Last session: 2026-03-15T04:27:03Z
-Stopped at: Completed 05-02-PLAN.md — Phase 5 complete
+Last session: 2026-03-15T04:53:10Z
+Stopped at: Completed 06-01-PLAN.md
 Resume file: None
 
 ---
 
-_See .planning/phases/05-integration/05-02-SUMMARY.md for detailed plan execution_
+_See .planning/phases/06-deployment/06-01-SUMMARY.md for detailed plan execution_
