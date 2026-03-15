@@ -8,107 +8,33 @@ An automated integration that syncs Google Calendar with Supernote, transforming
 
 None
 
-## Phases
+## Milestones
 
-**Phase Numbering:**
+- [v1.0 MVP](milestones/v1.0-ROADMAP.md) (Phases 1-6 + 2.2) — SHIPPED 2026-03-15
 
-- Integer phases (1, 2, 3): Planned milestone work
-- Decimal phases (2.1, 2.2): Urgent insertions (marked with INSERTED)
+## Completed Milestones
 
-Decimal phases appear between their surrounding integers in numeric order.
+<details>
+<summary>v1.0 MVP (Phases 1-6 + 2.2) — SHIPPED 2026-03-15</summary>
 
-- [x] **Phase 1: API Setup & Exploration** - Establish working authentication with Google Calendar and Supernote APIs (COMPLETE)
-- [x] **Phase 2: Meeting Detection Engine** - Implement hourly scheduled job to query meetings and detect changes (COMPLETE)
-- [x] **Phase 3: Folder & Organization System** - Create /Recurring and /Ad-Hoc folder hierarchies (COMPLETE)
-- [x] **Phase 4: Note Templates & Generation** - Design and implement meeting note templates with all required sections (COMPLETE)
-- [x] **Phase 5: End-to-End Integration** - Wire all components together and test complete workflow (COMPLETE)
-- [x] **Phase 6: Deployment & Polish** - Setup self-hosted execution, documentation, error handling (COMPLETE)
+- [x] Phase 1: API Setup & Exploration (3/3 plans) — completed 2026-03-11
+- [x] Phase 2: Meeting Detection Engine (1/1 plans) — completed 2026-03-11
+- [x] Phase 2.2: Web Dashboard (2/2 plans, INSERTED) — completed 2026-03-11
+- [x] Phase 3: Folder & Organization System (2/2 plans) — completed 2026-03-15
+- [x] Phase 4: Note Templates & Generation (2/2 plans) — completed 2026-03-15
+- [x] Phase 5: End-to-End Integration (2/2 plans) — completed 2026-03-15
+- [x] Phase 6: Deployment & Polish (2/2 plans) — completed 2026-03-15
 
-## Phase Details
-
-### Phase 1: API Setup & Exploration
-
-**Goal**: Establish working authentication and basic connectivity with both Google Calendar and Supernote APIs
-**Depends on**: Nothing (first phase)
-**Research**: Likely (external APIs, unofficial Supernote implementation)
-**Research topics**: Google Calendar OAuth2 flow, Supernote cloud API capabilities (unofficial adrianba/supernote-cloud-api), authentication patterns, API rate limits and constraints
-**Plans**: 3 plans
-
-Plans:
-
-- [x] 01-01: Google Calendar OAuth2 setup and basic connectivity
-- [x] 01-02: Supernote API exploration and authentication (unofficial API)
-- [x] 01-03: Verify both APIs work and document initial findings (COMPLETE)
-
-### Phase 2: Meeting Detection Engine
-
-**Goal**: Implement hourly scheduled job that queries Google Calendar for upcoming meetings and detects new/changed meetings
-**Depends on**: Phase 1
-**Research**: Unlikely (standard scheduling patterns, established job frameworks)
-**Plans**: 1 plan (originally 2, but query + change detection was completed in Plan 01)
-
-Plans:
-
-- [x] 02-01: Scheduler, meeting query, and change detection (COMPLETE - 2026-03-11)
-
-### Phase 3: Folder & Organization System
-
-**Goal**: Create and maintain folder hierarchy structure for organized meeting notes
-**Depends on**: Phase 2
-**Research**: Unlikely (straightforward folder organization)
-**Plans**: 2 plans
-
-Plans:
-
-- [x] 03-01: Meeting classification & folder mapping persistence (COMPLETE - 2026-03-15)
-- [x] 03-02: FolderOrganizer service & scheduler integration (COMPLETE - 2026-03-15)
-
-### Phase 4: Note Templates & Generation
-
-**Goal**: Design and implement meeting note templates with required sections and generate notes with human-readable names
-**Depends on**: Phase 3
-**Research**: Unlikely (internal template design, established patterns)
-**Plans**: 2 plans
-
-Plans:
-
-- [x] 04-01: Supernote file upload API + NoteTemplateGenerator (COMPLETE - 2026-03-15)
-- [x] 04-02: NoteCreator service & scheduler integration (COMPLETE - 2026-03-15)
-
-### Phase 5: End-to-End Integration
-
-**Goal**: Wire all components together and verify complete workflow from meeting detection to note creation
-**Depends on**: Phase 4
-**Research**: Unlikely (integration of existing components)
-**Plans**: 2 plans
-
-Plans:
-
-- [x] 05-01: Integration testing for recurring meeting flow (COMPLETE - 2026-03-15)
-- [x] 05-02: Integration testing for ad-hoc meeting flow and edge cases (COMPLETE - 2026-03-15)
-
-### Phase 6: Deployment & Polish
-
-**Goal**: Setup for self-hosted execution with documentation, error handling, and operational readiness
-**Depends on**: Phase 5
-**Research**: Unlikely (established deployment patterns)
-**Plans**: 2 plans
-
-Plans:
-
-- [x] 06-01: Self-hosted deployment setup and configuration (COMPLETE - 2026-03-15)
-- [x] 06-02: Documentation, error handling, logging, and operational improvements (COMPLETE - 2026-03-15)
+</details>
 
 ## Progress
 
-**Execution Order:**
-Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
-
-| Phase                           | Plans Complete | Status      | Completed  |
-| ------------------------------- | -------------- | ----------- | ---------- |
-| 1. API Setup & Exploration      | 3/3            | COMPLETE    | 2026-03-11 |
-| 2. Meeting Detection Engine     | 1/1            | COMPLETE    | 2026-03-11 |
-| 3. Folder & Organization System | 2/2            | COMPLETE    | 2026-03-15 |
-| 4. Note Templates & Generation  | 2/2            | COMPLETE    | 2026-03-15 |
-| 5. End-to-End Integration       | 2/2            | COMPLETE    | 2026-03-15 |
-| 6. Deployment & Polish          | 2/2            | COMPLETE    | 2026-03-15 |
+| Phase                           | Milestone | Plans Complete | Status   | Completed  |
+| ------------------------------- | --------- | -------------- | -------- | ---------- |
+| 1. API Setup & Exploration      | v1.0      | 3/3            | Complete | 2026-03-11 |
+| 2. Meeting Detection Engine     | v1.0      | 1/1            | Complete | 2026-03-11 |
+| 2.2. Web Dashboard (INSERTED)   | v1.0      | 2/2            | Complete | 2026-03-11 |
+| 3. Folder & Organization System | v1.0      | 2/2            | Complete | 2026-03-15 |
+| 4. Note Templates & Generation  | v1.0      | 2/2            | Complete | 2026-03-15 |
+| 5. End-to-End Integration       | v1.0      | 2/2            | Complete | 2026-03-15 |
+| 6. Deployment & Polish          | v1.0      | 2/2            | Complete | 2026-03-15 |

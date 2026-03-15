@@ -21,7 +21,11 @@ affects: [04-note-templates, 05-integration]
 # Tech tracking
 tech-stack:
   added: []
-  patterns: [FolderOrganizer service pattern, graceful degradation when credentials missing]
+  patterns:
+    [
+      FolderOrganizer service pattern,
+      graceful degradation when credentials missing,
+    ]
 
 key-files:
   created:
@@ -60,6 +64,7 @@ completed: 2026-03-15
 - **Files modified:** 3
 
 ## Accomplishments
+
 - FolderOrganizer creates `/Calendar/Recurring/[sanitized title]/` for recurring meetings and `/Calendar/Ad-Hoc/` for ad-hoc meetings
 - Recurring event instances deduplicated via FolderMappingStore — second instances reuse existing folders
 - Scheduler auto-creates folders after change detection when Supernote credentials available
@@ -74,11 +79,13 @@ Each task was committed atomically:
 2. **Task 2: Integrate FolderOrganizer into scheduler** - `6e8faa6` (feat)
 
 ## Files Created/Modified
+
 - `src/services/folder-organizer.ts` - FolderOrganizer with ensureBaseStructure, createFolderForMeeting, processNewMeetings
 - `tests/folder-organizer.test.ts` - 13 tests covering recurring/ad-hoc/dedup/error scenarios
 - `src/index-scheduler.ts` - Added folder creation after change detection with credential check
 
 ## Decisions Made
+
 - Ad-hoc meetings share Calendar/Ad-Hoc/ folder (individual note files go here in Phase 4)
 - Recurring meeting instances reuse parent folder via FolderMappingStore deduplication
 - Folder creation wrapped in per-meeting try/catch — individual failures don't crash batch
@@ -89,6 +96,7 @@ Each task was committed atomically:
 ### Auto-fixed Issues
 
 **1. [Rule 1 - Bug] FolderMappingStore API method names**
+
 - **Found during:** Task 1 (FolderOrganizer service)
 - **Issue:** Plan referenced `setFolderMapping`/`setRecurringFolderMapping` but actual API uses `addMapping`/`addRecurringFolder`
 - **Fix:** Used correct method names from FolderMappingStore
@@ -101,13 +109,16 @@ Each task was committed atomically:
 **Impact on plan:** Trivial naming correction. No scope creep.
 
 ## Issues Encountered
+
 None
 
 ## Next Phase Readiness
+
 - Phase 3 complete — folder hierarchy creation and scheduler integration working
 - Ready for Phase 4: Note Templates & Generation
 - FolderOrganizer provides folder IDs needed for note file creation in Phase 4
 
 ---
-*Phase: 03-folder-organization*
-*Completed: 2026-03-15*
+
+_Phase: 03-folder-organization_
+_Completed: 2026-03-15_
