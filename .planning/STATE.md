@@ -14,28 +14,31 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 ## Current Position
 
 Phase: 7 of 9 (Production Infrastructure Setup)
-Plan: 1 of 3 in current phase
+Plan: 2 of 3 in current phase
 Status: In progress
-Last activity: 2026-03-15 — Completed 07-01-PLAN.md
+Last activity: 2026-03-15 — Completed 07-02-PLAN.md
 
-Progress: █░░░░░░░░░ 10%
+Progress: ██░░░░░░░░ 20%
 
 ## Key Decisions Made
 
 See .planning/PROJECT.md Key Decisions table for full log.
 
-| Phase | Decision | Rationale |
-|-------|----------|-----------|
-| 7 | Skip ShellHub enrollment | Hub login broken, direct SSH works, fix deferred |
-| 7 | Disable UFW during provisioning | Repeated lockouts, re-enable after deploy |
-| 7 | Use existing Caddy on server | Already serving ez3d.salundo.com, add supernote as site |
+| Phase | Decision                        | Rationale                                               |
+| ----- | ------------------------------- | ------------------------------------------------------- |
+| 7     | Skip ShellHub enrollment        | Hub login broken, direct SSH works, fix deferred        |
+| 7     | Disable UFW during provisioning | Repeated lockouts, re-enable after deploy               |
+| 7     | Use existing Caddy on server    | Already serving ez3d.salundo.com, add supernote as site |
+| 7     | Shared web-proxy Docker network | 3dez Caddy owns ports 80/443, supernote joins via external network |
 
 ## Current Constraints & Blockers
 
 - Server at 37.27.198.218 provisioned with Docker 29.3.0
 - Domain supernote.salundo.com pointed at the server
 - SSH access working (direct, no ShellHub yet)
-- **Caddy already on server** for ez3d.salundo.com — must co-host
+- **HTTPS live** at supernote.salundo.com (Let's Encrypt, auto-renew)
+- Caddy shared via `web-proxy` Docker network (3dez Caddy routes both domains)
+- App running with placeholder .env (real secrets needed in Plan 03)
 - UFW disabled — re-enable after deployment (ISS-002)
 - ShellHub deferred — parallel fix (ISS-001)
 
@@ -79,7 +82,7 @@ See .planning/PROJECT.md Key Decisions table for full log.
 ## Session Continuity
 
 Last session: 2026-03-15
-Stopped at: Completed 07-01-PLAN.md
+Stopped at: Completed 07-02-PLAN.md
 Resume file: None
 
 ---
