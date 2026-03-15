@@ -1,20 +1,29 @@
-/**
- * Supernote API Unit Tests
- *
- * Unit tests for SupernoteAPIClient class.
- * Tests verify method signatures and error handling without actual API calls.
- *
- * For integration tests with real credentials:
- * Run: npx ts-node src/verify-supernote-auth.ts
- */
-
 import { SupernoteAPIClient } from "../src/services/supernote-api";
 
-describe("Supernote API Client - Unit Tests", () => {
+// Mock global fetch for direct API calls
+const mockFetch = jest.fn();
+global.fetch = mockFetch as unknown as typeof fetch;
+
+// Mock the supernote-cloud-api library
+jest.mock("supernote-cloud-api", () => ({
+  __esModule: true,
+  default: {
+    login: jest.fn(),
+    fileList: jest.fn(),
+    fileUrl: jest.fn(),
+    syncFiles: jest.fn(),
+  },
+}));
+
+import supernoteApi from "supernote-cloud-api";
+const mockedApi = supernoteApi as jest.Mocked<typeof supernoteApi>;
+
+describe("Supernote API Client", () => {
   let client: SupernoteAPIClient;
 
   beforeEach(() => {
     client = new SupernoteAPIClient();
+    jest.clearAllMocks();
   });
 
   describe("Client initialization", () => {
@@ -29,83 +38,243 @@ describe("Supernote API Client - Unit Tests", () => {
   });
 
   describe("Authentication validation", () => {
-    test("listNotebooks should throw error if not authenticated", async () => {
+    test("listNotebooks should throw if not authenticated", async () => {
       await expect(client.listNotebooks("0")).rejects.toThrow(
         /Not authenticated/,
       );
     });
 
-    test("getNoteById should throw error if not authenticated", async () => {
+    test("getNoteById should throw if not authenticated", async () => {
       await expect(client.getNoteById("test-id")).rejects.toThrow(
         /Not authenticated/,
       );
     });
 
-    test("createNotebook should throw error if not authenticated", async () => {
-      await expect(client.createNotebook("test", 0)).rejects.toThrow(
+    test("createFolder should throw if not authenticated", async () => {
+      await expect(client.createFolder("test")).rejects.toThrow(
         /Not authenticated/,
       );
     });
 
-    test("syncFiles should throw error if not authenticated", async () => {
+    test("syncFiles should throw if not authenticated", async () => {
       await expect(client.syncFiles("/tmp")).rejects.toThrow(
+        /Not authenticated/,
+      );
+    });
+
+    test("rename should throw if not authenticated", async () => {
+      await expect(client.rename(1, "new-name")).rejects.toThrow(
+        /Not authenticated/,
+      );
+    });
+
+    test("moveFiles should throw if not authenticated", async () => {
+      await expect(client.moveFiles([1], 0, 1)).rejects.toThrow(
+        /Not authenticated/,
+      );
+    });
+
+    test("deleteFiles should throw if not authenticated", async () => {
+      await expect(client.deleteFiles([1], 0)).rejects.toThrow(
         /Not authenticated/,
       );
     });
   });
 
   describe("API Method Signatures", () => {
-    test("SupernoteAPIClient should have authenticate method", () => {
-      expect(typeof client.authenticate).toBe("function");
-    });
-
-    test("SupernoteAPIClient should have listNotebooks method", () => {
-      expect(typeof client.listNotebooks).toBe("function");
-    });
-
-    test("SupernoteAPIClient should have getNoteById method", () => {
-      expect(typeof client.getNoteById).toBe("function");
-    });
-
-    test("SupernoteAPIClient should have createNotebook method", () => {
-      expect(typeof client.createNotebook).toBe("function");
-    });
-
-    test("SupernoteAPIClient should have syncFiles method", () => {
-      expect(typeof client.syncFiles).toBe("function");
-    });
-
-    test("SupernoteAPIClient should have isAuthenticated method", () => {
-      expect(typeof client.isAuthenticated).toBe("function");
-    });
-
-    test("SupernoteAPIClient should have getToken method", () => {
-      expect(typeof client.getToken).toBe("function");
+    test("should have all expected methods", () => {
+      const methods = [
+        "authenticate",
+        "listNotebooks",
+        "getNoteById",
+        "createFolder",
+        "createFolderPath",
+        "createFolderPath",
+        "rename",
+        "moveFiles",
+        "deleteFiles",
+        "syncFiles",
+        "isAuthenticated",
+        "getToken",
+      ];
+      for (const method of methods) {
+        expect(typeof (client as any)[method]).toBe("function");
+      }
     });
   });
 
-  describe("createNotebook limitation", () => {
-    test("createNotebook should reject with clear error message", async () => {
-      // Mock a token to bypass authentication check
+  describe("createFolder", () => {
+    beforeEach(() => {
       (client as any).token = "mock-token";
+    });
 
-      await expect(client.createNotebook("test-notebook", 0)).rejects.toThrow(
-        /not yet implemented/,
+    test("should POST to /api/file/folder/add", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+
+      await client.createFolder("Meeting Notes", 0);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://cloud.supernote.com/api/file/folder/add",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ fileName: "Meeting Notes", directoryId: 0 }),
+        }),
       );
     });
 
-    test("createNotebook error should suggest API endpoint", async () => {
-      (client as any).token = "mock-token";
+    test("should include auth token in header", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
 
-      try {
-        await client.createNotebook("test", 0);
-        fail("Should have thrown error");
-      } catch (error) {
-        expect(error instanceof Error).toBe(true);
-        if (error instanceof Error) {
-          expect(error.message).toContain("POST /api/notebook/create");
-        }
-      }
+      await client.createFolder("test", 0);
+
+      const headers = mockFetch.mock.calls[0][1].headers;
+      expect(headers["x-access-token"]).toBe("mock-token");
+    });
+
+    test("should throw on API error response", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ errorCode: "500", errorMsg: "Internal error" }),
+      });
+
+      await expect(client.createFolder("test", 0)).rejects.toThrow(
+        "Internal error",
+      );
+    });
+
+    test("should throw on HTTP error", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        statusText: "Forbidden",
+      });
+
+      await expect(client.createFolder("test", 0)).rejects.toThrow(
+        "403 Forbidden",
+      );
+    });
+  });
+
+  describe("createFolderPath", () => {
+    beforeEach(() => {
+      (client as any).token = "mock-token";
+    });
+
+    test("should reuse existing folders", async () => {
+      mockedApi.fileList.mockResolvedValueOnce([
+        { id: "10", fileName: "Calendar", isFolder: "Y" } as any,
+      ]);
+      mockedApi.fileList.mockResolvedValueOnce([
+        { id: "20", fileName: "Recurring", isFolder: "Y" } as any,
+      ]);
+
+      const id = await client.createFolderPath("Calendar/Recurring");
+      expect(id).toBe(20);
+      expect(mockFetch).not.toHaveBeenCalled(); // No folders created
+    });
+
+    test("should create missing segments and use returned ID", async () => {
+      // First segment: "Calendar" exists
+      mockedApi.fileList.mockResolvedValueOnce([
+        { id: "10", fileName: "Calendar", isFolder: "Y" } as any,
+      ]);
+      // Second segment: "NewFolder" doesn't exist
+      mockedApi.fileList.mockResolvedValueOnce([]);
+
+      // Create response includes the new folder's ID
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ id: 30 }),
+      });
+
+      const id = await client.createFolderPath("Calendar/NewFolder");
+      expect(id).toBe(30);
+      expect(mockFetch).toHaveBeenCalledTimes(1); // One folder created
+      // No extra fileList call needed since ID came from response
+      expect(mockedApi.fileList).toHaveBeenCalledTimes(2);
+    });
+
+    test("should fall back to re-listing if create response has no ID", async () => {
+      mockedApi.fileList.mockResolvedValueOnce([]); // "Docs" doesn't exist
+      mockedApi.fileList.mockResolvedValueOnce([
+        { id: "50", fileName: "Docs", isFolder: "Y" } as any,
+      ]);
+
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }), // No ID returned
+      });
+
+      const id = await client.createFolderPath("Docs");
+      expect(id).toBe(50);
+      expect(mockedApi.fileList).toHaveBeenCalledTimes(2); // Initial + re-list
+    });
+  });
+
+  describe("rename", () => {
+    test("should POST to /api/file/rename", async () => {
+      (client as any).token = "mock-token";
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+
+      await client.rename(123, "New Name");
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://cloud.supernote.com/api/file/rename",
+        expect.objectContaining({
+          body: JSON.stringify({ id: 123, newName: "New Name" }),
+        }),
+      );
+    });
+  });
+
+  describe("moveFiles", () => {
+    test("should POST to /api/file/move", async () => {
+      (client as any).token = "mock-token";
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+
+      await client.moveFiles([1, 2], 0, 10);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://cloud.supernote.com/api/file/move",
+        expect.objectContaining({
+          body: JSON.stringify({
+            idList: [1, 2],
+            directoryId: 0,
+            goDirectoryId: 10,
+          }),
+        }),
+      );
+    });
+  });
+
+  describe("deleteFiles", () => {
+    test("should POST to /api/file/delete", async () => {
+      (client as any).token = "mock-token";
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+
+      await client.deleteFiles([5, 6], 10);
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "https://cloud.supernote.com/api/file/delete",
+        expect.objectContaining({
+          body: JSON.stringify({ idList: [5, 6], directoryId: 10 }),
+        }),
+      );
     });
   });
 
@@ -128,23 +297,3 @@ describe("Supernote API Client - Unit Tests", () => {
     });
   });
 });
-
-/**
- * Integration test documentation
- *
- * To run integration tests with real Supernote credentials:
- *
- * 1. Create .env file with:
- *    SUPERNOTE_EMAIL=your_email@example.com
- *    SUPERNOTE_PASSWORD=your_password_here
- *
- * 2. Run verification script:
- *    npx ts-node src/verify-supernote-auth.ts
- *
- * The verification script tests:
- * - Authentication with actual Supernote account
- * - listNotebooks() retrieves real notebooks from root directory
- * - getNoteById() works with actual notebook IDs
- * - API response format matches FileInfo type definition
- * - createNotebook() correctly reports as unimplemented
- */

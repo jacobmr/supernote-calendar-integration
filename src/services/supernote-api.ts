@@ -1,44 +1,56 @@
-/**
- * Supernote Cloud API Wrapper
- *
- * This module provides a TypeScript wrapper around the adrianba/supernote-cloud-api library.
- *
- * Authentication:
- * - Uses email/password-based authentication
- * - Credentials should be stored in .env as SUPERNOTE_EMAIL and SUPERNOTE_PASSWORD
- * - The library handles SHA256(MD5(password) + randomCode) hashing internally
- *
- * Available Methods:
- * - login(email, password): Authenticates with Supernote and returns access token
- * - fileList(token, directoryId?): Lists files/folders in a directory (0 = root)
- * - fileUrl(token, id): Gets download URL for a file
- * - syncFiles(token, localPath): Syncs Supernote files to local filesystem
- *
- * API Response Format:
- * - fileList returns array of userFileVOList items with properties:
- *   - id: unique file/folder identifier
- *   - fileName: name of file or folder
- *   - isFolder: "Y" or "N" indicating if item is a folder
- *   - updateTime: last modification timestamp
- *   - fileSize: size in bytes
- *
- * Rate Limits:
- * - No documented rate limits from unofficial API
- * - Requests should include reasonable delays to avoid being rate-limited
- */
-
 import supernoteApi from "supernote-cloud-api";
 import type { FileInfo } from "supernote-cloud-api";
+
+const SUPERNOTE_BASE_URL = "https://cloud.supernote.com";
+
+interface ApiResponse {
+  success?: boolean;
+  errorCode?: string;
+  errorMsg?: string;
+  [key: string]: unknown;
+}
 
 export class SupernoteAPIClient {
   private token: string | null = null;
 
-  /**
-   * Authenticate with Supernote Cloud
-   * @param email Supernote account email
-   * @param password Supernote account password
-   * @returns Access token for subsequent API calls
-   */
+  private requireToken(): string {
+    if (!this.token) {
+      throw new Error("Not authenticated. Call authenticate() first.");
+    }
+    return this.token;
+  }
+
+  private async postJson(
+    path: string,
+    payload: Record<string, unknown>,
+  ): Promise<ApiResponse> {
+    const token = this.requireToken();
+    const response = await fetch(`${SUPERNOTE_BASE_URL}${path}`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "x-access-token": token,
+        "User-Agent":
+          "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/107.0.0.0 Safari/537.36",
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      throw new Error(
+        `Supernote API error: ${response.status} ${response.statusText}`,
+      );
+    }
+
+    const data = (await response.json()) as ApiResponse;
+    if (data.errorCode && data.errorCode !== "0") {
+      throw new Error(
+        `Supernote API error: ${data.errorMsg || data.errorCode}`,
+      );
+    }
+    return data;
+  }
+
   async authenticate(email: string, password: string): Promise<string> {
     console.log(`Authenticating with Supernote as ${email}...`);
     this.token = await supernoteApi.login(email, password);
@@ -46,88 +58,145 @@ export class SupernoteAPIClient {
     return this.token;
   }
 
-  /**
-   * List all files and folders in a directory
-   * @param directoryId Directory ID to list (0 for root, pass as string per API)
-   * @returns Array of files and folders
-   */
   async listNotebooks(directoryId: string = "0"): Promise<FileInfo[]> {
-    if (!this.token) {
-      throw new Error("Not authenticated. Call authenticate() first.");
-    }
-
+    this.requireToken();
     console.log(`Listing notebooks in directory ${directoryId}...`);
-    const items = await supernoteApi.fileList(this.token, directoryId);
+    const items = await supernoteApi.fileList(this.token!, directoryId);
     console.log(`Found ${items.length} items`);
     return items;
   }
 
   /**
-   * Create a new notebook (folder) in Supernote
-   * Note: The unofficial API does not provide a direct createNotebook method.
-   * This function documents the required parameters for Phase 3 planning.
-   *
-   * TODO: Implement folder creation via API when method becomes available
-   * or find alternative approach in library.
-   *
-   * @param name Notebook name
-   * @param parentId Parent folder ID (0 for root)
-   * @returns Created notebook metadata (when API supports it)
+   * Create a folder in Supernote Cloud.
+   * @param name Folder name
+   * @param parentId Parent directory ID (0 for root)
    */
-  async createNotebook(name: string, parentId: number = 0): Promise<void> {
-    if (!this.token) {
-      throw new Error("Not authenticated. Call authenticate() first.");
-    }
-
-    // The unofficial API does not expose a create method yet
-    // This would need to be implemented when the library adds support
-    // or through reverse-engineering the API endpoint
-    throw new Error(
-      "createNotebook not yet implemented in unofficial Supernote API. " +
-        "Consider creating notebooks manually or exploring API endpoint: " +
-        "POST /api/notebook/create with { name, parentId }",
-    );
+  async createFolder(name: string, parentId: number = 0): Promise<ApiResponse> {
+    console.log(`Creating folder "${name}" in directory ${parentId}...`);
+    const data = await this.postJson("/api/file/folder/add", {
+      fileName: name,
+      directoryId: parentId,
+    });
+    console.log(`Folder "${name}" created`);
+    return data;
   }
 
   /**
-   * Get a specific file/notebook by ID
-   * @param id File or notebook ID
-   * @returns File metadata and download URL
+   * Create nested folder path, returning the final folder's ID.
+   * Creates any missing segments. Example: createFolderPath("Calendar/Recurring/Standup")
+   * @param folderPath Forward-slash separated path (e.g. "Calendar/Recurring")
+   * @param rootId Starting directory ID (0 for root)
+   * @returns ID of the deepest folder
    */
-  async getNoteById(id: string): Promise<{ url: string; id: string }> {
-    if (!this.token) {
-      throw new Error("Not authenticated. Call authenticate() first.");
+  async createFolderPath(
+    folderPath: string,
+    rootId: number = 0,
+  ): Promise<number> {
+    const segments = folderPath.split("/").filter(Boolean);
+    let currentParentId = rootId;
+
+    for (const segment of segments) {
+      const listing = await supernoteApi.fileList(
+        this.requireToken(),
+        String(currentParentId),
+      );
+      const match = listing.find(
+        (item: FileInfo) => item.isFolder === "Y" && item.fileName === segment,
+      );
+
+      if (match) {
+        currentParentId = Number(match.id);
+      } else {
+        const result = await this.createFolder(segment, currentParentId);
+        // Use ID from create response if available, otherwise re-list
+        if (result.id) {
+          currentParentId = Number(result.id);
+        } else {
+          const updated = await supernoteApi.fileList(
+            this.requireToken(),
+            String(currentParentId),
+          );
+          const created = updated.find(
+            (item: FileInfo) =>
+              item.isFolder === "Y" && item.fileName === segment,
+          );
+          if (!created) {
+            throw new Error(
+              `Failed to find folder "${segment}" after creation`,
+            );
+          }
+          currentParentId = Number(created.id);
+        }
+      }
     }
 
+    return currentParentId;
+  }
+
+  /**
+   * Rename a file or folder.
+   * @param id File/folder ID
+   * @param newName New name
+   */
+  async rename(id: number, newName: string): Promise<ApiResponse> {
+    console.log(`Renaming ${id} to "${newName}"...`);
+    return this.postJson("/api/file/rename", { id, newName });
+  }
+
+  /**
+   * Move files/folders to another directory.
+   * @param idList IDs of items to move
+   * @param fromDirectoryId Source directory ID
+   * @param toDirectoryId Destination directory ID
+   */
+  async moveFiles(
+    idList: number[],
+    fromDirectoryId: number,
+    toDirectoryId: number,
+  ): Promise<ApiResponse> {
+    console.log(
+      `Moving ${idList.length} items from ${fromDirectoryId} to ${toDirectoryId}...`,
+    );
+    return this.postJson("/api/file/move", {
+      idList,
+      directoryId: fromDirectoryId,
+      goDirectoryId: toDirectoryId,
+    });
+  }
+
+  /**
+   * Delete files/folders (moves to recycle bin).
+   * @param idList IDs of items to delete
+   * @param directoryId Directory containing the items
+   */
+  async deleteFiles(
+    idList: number[],
+    directoryId: number,
+  ): Promise<ApiResponse> {
+    console.log(
+      `Deleting ${idList.length} items from directory ${directoryId}...`,
+    );
+    return this.postJson("/api/file/delete", { idList, directoryId });
+  }
+
+  async getNoteById(id: string): Promise<{ url: string; id: string }> {
+    this.requireToken();
     console.log(`Getting download URL for notebook ${id}...`);
-    const url = await supernoteApi.fileUrl(this.token, id);
+    const url = await supernoteApi.fileUrl(this.token!, id);
     return { url, id };
   }
 
-  /**
-   * Sync all Supernote files to local filesystem
-   * @param localPath Local directory path to sync to
-   */
   async syncFiles(localPath: string): Promise<void> {
-    if (!this.token) {
-      throw new Error("Not authenticated. Call authenticate() first.");
-    }
-
+    this.requireToken();
     console.log(`Syncing Supernote to ${localPath}...`);
-    await supernoteApi.syncFiles(this.token, localPath);
+    await supernoteApi.syncFiles(this.token!, localPath);
     console.log("Sync complete");
   }
 
-  /**
-   * Check if currently authenticated
-   */
   isAuthenticated(): boolean {
     return this.token !== null;
   }
 
-  /**
-   * Get current authentication token
-   */
   getToken(): string | null {
     return this.token;
   }

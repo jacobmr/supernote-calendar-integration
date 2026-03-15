@@ -153,17 +153,16 @@ This document summarizes findings from Phase 1 Plan 03 integration testing of Go
 
 ### Constraints & Workarounds
 
-**Constraint 1: Notebook Creation NOT YET AVAILABLE**
+**~~Constraint 1: Notebook Creation NOT YET AVAILABLE~~ RESOLVED (2026-03-15)**
 
-- Unofficial API does not expose createNotebook method
-- Current implementation throws helpful error message
-- API endpoint hint: `POST /api/notebook/create with { name, parentId }`
-- **Critical for Phase 3**: Must implement folder creation before creating meeting notes
-- Options:
-  1. Reverse-engineer and implement POST endpoint (safest for long-term)
-  2. Create notebooks manually in Supernote UI ahead of time
-  3. Request official API documentation from Supernote
-  4. Wait for library update (adrianba/supernote-cloud-api)
+- Reverse-engineered endpoints confirmed via multiple third-party clients (julianprester/sncloud, allenporter/supernote OpenAPI spec)
+- **Folder creation**: `POST /api/file/folder/add` with `{ fileName, directoryId }`
+- **Rename**: `POST /api/file/rename` with `{ id, newName }`
+- **Move**: `POST /api/file/move` with `{ idList, directoryId, goDirectoryId }`
+- **Delete**: `POST /api/file/delete` with `{ idList, directoryId }` (recycle bin)
+- **Upload**: 3-step S3 flow: apply → PUT to S3 → finish
+- All implemented in SupernoteAPIClient including `createFolderPath()` for nested folder creation
+- **Phase 3 is unblocked**
 
 **Constraint 2: No Batch Operations**
 
