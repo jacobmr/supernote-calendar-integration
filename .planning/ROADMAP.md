@@ -41,7 +41,9 @@ None
 **Plans**: TBD
 
 Plans:
-- [ ] 07-01: TBD (run /gsd:plan-phase 7 to break down)
+- [ ] 07-01: Server provisioning, Docker, ShellHub enrollment
+- [ ] 07-02: Caddy reverse proxy, TLS, production Docker Compose
+- [ ] 07-03: SOPS secrets management, deploy script
 
 #### Phase 8: Production Deployment & Integration
 
