@@ -10,6 +10,8 @@ import {
 import { StateManager, PersistedMeeting } from "./services/state-manager";
 import { FolderMappingStore } from "./services/folder-mapping-store";
 import { FolderOrganizer } from "./services/folder-organizer";
+import { NoteCreator } from "./services/note-creator";
+import { NoteTemplateGenerator } from "./services/note-template-generator";
 import SupernoteAPIClient from "./services/supernote-api";
 import { GOOGLE_CALENDAR_API } from "./services/constants";
 
@@ -115,9 +117,11 @@ async function startScheduler(): Promise<void> {
         }
       }
 
-      // Folder creation for new meetings
+      // Folder and note creation for new meetings
       let foldersCreated = 0;
       let foldersSkipped = 0;
+      let notesCreated = 0;
+      let notesSkipped = 0;
 
       if (changes.newMeetings.length > 0) {
         const supernoteEmail = process.env.SUPERNOTE_EMAIL;
@@ -151,6 +155,31 @@ async function startScheduler(): Promise<void> {
             console.log(
               `[Scheduler] Folders created: ${foldersCreated}, skipped: ${foldersSkipped}`,
             );
+
+            // Create notes for new meetings (after folders exist)
+            try {
+              const templateGenerator = new NoteTemplateGenerator();
+              const noteCreator = new NoteCreator(
+                supernoteClient,
+                templateGenerator,
+                mappingStore,
+              );
+
+              const noteResult =
+                await noteCreator.processNewMeetings(newMeetingData);
+              notesCreated = noteResult.created;
+              notesSkipped = noteResult.skipped;
+
+              console.log(
+                `[Scheduler] Notes created: ${notesCreated}, skipped: ${notesSkipped}`,
+              );
+            } catch (error) {
+              const noteErrorMessage =
+                error instanceof Error ? error.message : "Unknown error";
+              console.error(
+                `[Scheduler] Note creation failed: ${noteErrorMessage}`,
+              );
+            }
           } catch (error) {
             const folderErrorMessage =
               error instanceof Error ? error.message : "Unknown error";
@@ -160,7 +189,7 @@ async function startScheduler(): Promise<void> {
           }
         } else {
           console.warn(
-            "[Scheduler] Supernote credentials not configured — skipping folder creation",
+            "[Scheduler] Supernote credentials not configured — skipping folder and note creation",
           );
         }
       }
@@ -180,6 +209,8 @@ async function startScheduler(): Promise<void> {
           cancelled: changes.cancelledMeetings.length,
           foldersCreated,
           foldersSkipped,
+          notesCreated,
+          notesSkipped,
         },
         status: "idle",
       };
@@ -232,4 +263,6 @@ export {
   StateManager,
   FolderOrganizer,
   FolderMappingStore,
+  NoteCreator,
+  NoteTemplateGenerator,
 };
