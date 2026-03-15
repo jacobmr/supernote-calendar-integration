@@ -1,17 +1,17 @@
 # Project State - Supernote Calendar Integration
 
 **Last Updated**: 2026-03-15
-**Current Phase**: Phase 4 complete
+**Current Phase**: Phase 5 in progress
 **Total Phases**: 6
 
 ## Current Position
 
-Phase: 4 of 6 (Note Templates & Generation)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-03-15 - Completed 04-02-PLAN.md
+Phase: 5 of 6 (End-to-End Integration)
+Plan: 1 of 2 in current phase
+Status: Plan 1 complete
+Last activity: 2026-03-15 - Completed 05-01-PLAN.md
 
-Progress: ██████████░░ 83%
+Progress: ██████████░░ 88%
 
 ## Phase Completion Status
 
@@ -26,11 +26,18 @@ Progress: ██████████░░ 83%
 | 03-folder-org         | 01     | ✅ Complete     | e10139d     |
 | 03-folder-org         | 02     | ✅ Complete     | 6e8faa6     |
 | 04-note-templates     | 01     | ✅ Complete     | 28757de     |
-| **04-note-templates** | **02** | **✅ Complete** | **1afebfa** |
-| 05-integration        | -      | ⏳ Pending      | -           |
+| 04-note-templates     | 02     | ✅ Complete     | 1afebfa     |
+| **05-integration**    | **01** | **✅ Complete** | **77c90f3** |
+| 05-integration        | 02     | ⏳ Pending      | -           |
 | 06-deployment         | -      | ⏳ Pending      | -           |
 
 ## Key Decisions Made
+
+### From Phase 5
+
+1. **Manual mock objects for integration tests**: Not jest.mock() — real service composition with controllable boundaries
+2. **Factory functions with incrementing counters**: Collision-free test data across test cases
+3. **Temp file isolation for FolderMappingStore**: Each test gets clean state with automatic cleanup
 
 ### From Phase 4
 
@@ -85,6 +92,7 @@ Progress: ██████████░░ 83%
 ✅ Date-based filename generation (recurring vs ad-hoc)
 ✅ NoteCreator service with duplicate prevention
 ✅ Automatic note creation in scheduler pipeline
+✅ Recurring meeting pipeline integration tested
 
 ## Architecture Decisions
 
@@ -99,23 +107,24 @@ Progress: ██████████░░ 83%
 - **File Upload**: 3-step S3 flow (apply → PUT → finish) with MD5 verification
 - **Note Templates**: Markdown generation with Intl.DateTimeFormat formatting
 - **Note Creator**: Orchestrates template generation + upload with duplicate prevention
+- **Integration Tests**: Factory-based helpers with manual mock objects
 
-### Next (Phase 5)
+### Next (Phase 5 Plan 2)
 
-- End-to-end integration testing (recurring + ad-hoc flows)
+- Ad-hoc meeting flow and edge case integration testing
 
 ## Performance Baselines
 
 - Build time: ~2 seconds
-- Test execution: ~3.5 seconds (95 tests)
+- Test execution: ~4.5 seconds (98 tests)
 - Scheduler job: ~50-200ms per run
 
 ## Session Continuity
 
-Last session: 2026-03-15T03:59:41Z
-Stopped at: Completed 04-02-PLAN.md — Phase 4 complete
+Last session: 2026-03-15T04:13:30Z
+Stopped at: Completed 05-01-PLAN.md — Recurring pipeline integration tests
 Resume file: None
 
 ---
 
-_See .planning/phases/04-note-templates/04-02-SUMMARY.md for detailed plan execution_
+_See .planning/phases/05-integration/05-01-SUMMARY.md for detailed plan execution_
