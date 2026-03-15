@@ -72,7 +72,7 @@ Plans:
 
 Plans:
 
-- [ ] 04-01: Design template sections (Agenda, Notes, Action Items, Attendees, Decisions)
+- [x] 04-01: Supernote file upload API + NoteTemplateGenerator (COMPLETE - 2026-03-15)
 - [ ] 04-02: Implement note creation with templates and clean naming
 
 ### Phase 5: End-to-End Integration
@@ -109,6 +109,6 @@ Phases execute in numeric order: 1 → 2 → 3 → 4 → 5 → 6
 | 1. API Setup & Exploration      | 3/3            | COMPLETE    | 2026-03-11 |
 | 2. Meeting Detection Engine     | 1/1            | COMPLETE    | 2026-03-11 |
 | 3. Folder & Organization System | 2/2            | COMPLETE    | 2026-03-15 |
-| 4. Note Templates & Generation  | 0/2            | Not started | -          |
+| 4. Note Templates & Generation  | 1/2            | In progress | -          |
 | 5. End-to-End Integration       | 0/2            | Not started | -          |
 | 6. Deployment & Polish          | 0/2            | Not started | -          |

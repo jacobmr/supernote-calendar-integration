@@ -1,17 +1,17 @@
 # Project State - Supernote Calendar Integration
 
 **Last Updated**: 2026-03-15
-**Current Phase**: Phase 3 complete
+**Current Phase**: Phase 4 in progress
 **Total Phases**: 6
 
 ## Current Position
 
-Phase: 3 of 6 (Folder & Organization System)
-Plan: 2 of 2 in current phase
-Status: Phase complete
-Last activity: 2026-03-15 - Completed 03-02-PLAN.md
+Phase: 4 of 6 (Note Templates & Generation)
+Plan: 1 of 2 in current phase
+Status: In progress
+Last activity: 2026-03-15 - Completed 04-01-PLAN.md
 
-Progress: ████████░░░░ 67%
+Progress: █████████░░░ 75%
 
 ## Phase Completion Status
 
@@ -24,12 +24,18 @@ Progress: ████████░░░░ 67%
 | 2.2-web-dashboard    | 01     | ✅ Complete     | 0404902     |
 | 2.2-web-dashboard    | 02     | ✅ Complete     | ca2d6fc     |
 | 03-folder-org        | 01     | ✅ Complete     | e10139d     |
-| **03-folder-org**    | **02** | **✅ Complete** | **6e8faa6** |
-| 04-note-templates    | -      | ⏳ Pending      | -           |
+| 03-folder-org        | 02     | ✅ Complete     | 6e8faa6     |
+| **04-note-templates** | **01** | **✅ Complete** | **28757de** |
 | 05-integration       | -      | ⏳ Pending      | -           |
 | 06-deployment        | -      | ⏳ Pending      | -           |
 
 ## Key Decisions Made
+
+### From Phase 4
+
+1. **Intl.DateTimeFormat for formatting**: Zero-dependency date/time formatting
+2. **Recurring filenames omit time**: `YYYY-MM-DD Title.md` — unique folder per meeting
+3. **Ad-hoc filenames include time**: `YYYY-MM-DD HH-MM Title.md` — prevents collisions in shared folder
 
 ### From Phase 3
 
@@ -71,6 +77,9 @@ Progress: ████████░░░░ 67%
 ✅ Meeting→folder mapping persistence
 ✅ Folder hierarchy creation (Recurring + Ad-Hoc)
 ✅ Scheduler auto-creates folders for new meetings
+✅ Supernote 3-step S3 file upload (apply → PUT → finish)
+✅ Meeting note markdown template generation
+✅ Date-based filename generation (recurring vs ad-hoc)
 
 ## Architecture Decisions
 
@@ -82,25 +91,26 @@ Progress: ████████░░░░ 67%
 - **State Storage**: JSON files (meeting-state.json, scheduler-status.json, folder-mappings.json)
 - **Container**: Single Docker container with start.sh
 - **Folder Organizer**: Creates Calendar/Recurring/[Name] and Calendar/Ad-Hoc in Supernote
+- **File Upload**: 3-step S3 flow (apply → PUT → finish) with MD5 verification
+- **Note Templates**: Markdown generation with Intl.DateTimeFormat formatting
 
-### Next (Phase 4)
+### Next (Phase 4, Plan 02)
 
-- Note template design (Agenda, Notes, Action Items, Attendees, Decisions)
-- Note creation with templates and clean naming
-- Note files placed in folders created by FolderOrganizer
+- NoteCreator service wiring template generation + file upload
+- Scheduler integration for automatic note creation
 
 ## Performance Baselines
 
 - Build time: ~2 seconds
-- Test execution: ~2.5 seconds (65 tests)
+- Test execution: ~3.3 seconds (86 tests)
 - Scheduler job: ~50-200ms per run
 
 ## Session Continuity
 
-Last session: 2026-03-15T03:33:44Z
-Stopped at: Completed 03-02-PLAN.md — Phase 3 complete
+Last session: 2026-03-15T03:52:26Z
+Stopped at: Completed 04-01-PLAN.md — Phase 4 plan 1 of 2
 Resume file: None
 
 ---
 
-_See .planning/phases/03-folder-organization/03-02-SUMMARY.md for detailed plan execution_
+_See .planning/phases/04-note-templates/04-01-SUMMARY.md for detailed plan execution_
