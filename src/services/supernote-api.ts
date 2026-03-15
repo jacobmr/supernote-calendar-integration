@@ -1,5 +1,17 @@
 import * as crypto from "crypto";
-import supernoteApi from "supernote-cloud-api";
+
+// supernote-cloud-api is ESM-only; load via dynamic import() in CommonJS
+let _supernoteApi: (typeof import("supernote-cloud-api"))["default"] | null =
+  null;
+async function getSupernoteApi() {
+  if (!_supernoteApi) {
+    const mod = await import("supernote-cloud-api");
+    _supernoteApi = mod.default;
+  }
+  return _supernoteApi;
+}
+
+// Re-export type for use in this file (import type is erased at runtime)
 import type { FileInfo } from "supernote-cloud-api";
 
 const SUPERNOTE_BASE_URL = "https://cloud.supernote.com";
@@ -54,7 +66,8 @@ export class SupernoteAPIClient {
 
   async authenticate(email: string, password: string): Promise<string> {
     console.log(`Authenticating with Supernote as ${email}...`);
-    this.token = await supernoteApi.login(email, password);
+    const api = await getSupernoteApi();
+    this.token = await api.login(email, password);
     console.log("Authentication successful");
     return this.token;
   }
@@ -62,7 +75,8 @@ export class SupernoteAPIClient {
   async listNotebooks(directoryId: string = "0"): Promise<FileInfo[]> {
     this.requireToken();
     console.log(`Listing notebooks in directory ${directoryId}...`);
-    const items = await supernoteApi.fileList(this.token!, directoryId);
+    const api = await getSupernoteApi();
+    const items = await api.fileList(this.token!, directoryId);
     console.log(`Found ${items.length} items`);
     return items;
   }
@@ -97,7 +111,8 @@ export class SupernoteAPIClient {
     let currentParentId = rootId;
 
     for (const segment of segments) {
-      const listing = await supernoteApi.fileList(
+      const api = await getSupernoteApi();
+      const listing = await api.fileList(
         this.requireToken(),
         String(currentParentId),
       );
@@ -113,7 +128,7 @@ export class SupernoteAPIClient {
         if (result.id) {
           currentParentId = Number(result.id);
         } else {
-          const updated = await supernoteApi.fileList(
+          const updated = await api.fileList(
             this.requireToken(),
             String(currentParentId),
           );
@@ -275,14 +290,16 @@ export class SupernoteAPIClient {
   async getNoteById(id: string): Promise<{ url: string; id: string }> {
     this.requireToken();
     console.log(`Getting download URL for notebook ${id}...`);
-    const url = await supernoteApi.fileUrl(this.token!, id);
+    const api = await getSupernoteApi();
+    const url = await api.fileUrl(this.token!, id);
     return { url, id };
   }
 
   async syncFiles(localPath: string): Promise<void> {
     this.requireToken();
     console.log(`Syncing Supernote to ${localPath}...`);
-    await supernoteApi.syncFiles(this.token!, localPath);
+    const api = await getSupernoteApi();
+    await api.syncFiles(this.token!, localPath);
     console.log("Sync complete");
   }
 
