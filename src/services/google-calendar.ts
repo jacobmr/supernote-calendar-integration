@@ -16,6 +16,7 @@ export interface CalendarEvent {
   }>;
   description?: string;
   location?: string;
+  recurringEventId?: string;
 }
 
 /**
@@ -86,6 +87,7 @@ export class GoogleCalendarService {
           })),
           description: event.description,
           location: event.location,
+          recurringEventId: event.recurringEventId || undefined,
         } as CalendarEvent;
       });
 

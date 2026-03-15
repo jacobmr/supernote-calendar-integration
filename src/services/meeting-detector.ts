@@ -16,6 +16,8 @@ export interface MeetingData {
   }>;
   description?: string;
   location?: string;
+  isRecurring: boolean;
+  recurringEventId?: string;
 }
 
 /**
@@ -57,6 +59,8 @@ export class MeetingDetectorService {
         attendees: event.attendees,
         description: event.description,
         location: event.location,
+        isRecurring: !!event.recurringEventId,
+        recurringEventId: event.recurringEventId,
       }));
 
       return meetings;

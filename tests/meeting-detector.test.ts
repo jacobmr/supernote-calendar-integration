@@ -1,4 +1,12 @@
 import { StateManager, PersistedMeeting } from "../src/services/state-manager";
+import {
+  MeetingDetectorService,
+  MeetingData,
+} from "../src/services/meeting-detector";
+import {
+  GoogleCalendarService,
+  CalendarEvent,
+} from "../src/services/google-calendar";
 
 /**
  * Test suite for meeting state persistence and change detection
@@ -310,6 +318,119 @@ describe("StateManager", () => {
       expect(changes.cancelledMeetings[0].id).toBe("meeting-3");
 
       console.log("✓ Handle complex scenario (new + changed + cancelled)");
+    });
+  });
+});
+
+/**
+ * Test suite for MeetingDetector recurring event classification
+ */
+describe("MeetingDetectorService", () => {
+  describe("Recurring Event Classification", () => {
+    it("should classify meetings with recurringEventId as recurring", async () => {
+      const mockEvents: CalendarEvent[] = [
+        {
+          id: "event-instance-1",
+          title: "Weekly Standup",
+          start: "2026-03-16T09:00:00Z",
+          end: "2026-03-16T09:30:00Z",
+          attendees: [],
+          recurringEventId: "recurring-parent-abc",
+        },
+      ];
+
+      const mockCalendarService = {
+        getUpcomingEvents: jest.fn().mockResolvedValue(mockEvents),
+      } as unknown as GoogleCalendarService;
+
+      const detector = new MeetingDetectorService(mockCalendarService);
+      const meetings = await detector.queryUpcomingMeetings({ days: 7 });
+
+      expect(meetings.length).toBe(1);
+      expect(meetings[0].isRecurring).toBe(true);
+      expect(meetings[0].recurringEventId).toBe("recurring-parent-abc");
+      console.log("✓ Recurring meeting classified correctly");
+    });
+
+    it("should classify meetings without recurringEventId as non-recurring", async () => {
+      const mockEvents: CalendarEvent[] = [
+        {
+          id: "event-adhoc-1",
+          title: "Ad-hoc Planning Session",
+          start: "2026-03-16T14:00:00Z",
+          end: "2026-03-16T15:00:00Z",
+          attendees: [],
+        },
+      ];
+
+      const mockCalendarService = {
+        getUpcomingEvents: jest.fn().mockResolvedValue(mockEvents),
+      } as unknown as GoogleCalendarService;
+
+      const detector = new MeetingDetectorService(mockCalendarService);
+      const meetings = await detector.queryUpcomingMeetings({ days: 7 });
+
+      expect(meetings.length).toBe(1);
+      expect(meetings[0].isRecurring).toBe(false);
+      expect(meetings[0].recurringEventId).toBeUndefined();
+      console.log("✓ Non-recurring meeting classified correctly");
+    });
+
+    it("should handle mixed recurring and non-recurring meetings", async () => {
+      const mockEvents: CalendarEvent[] = [
+        {
+          id: "event-recurring-1",
+          title: "Daily Sync",
+          start: "2026-03-16T09:00:00Z",
+          end: "2026-03-16T09:15:00Z",
+          attendees: [
+            { email: "team@example.com", responseStatus: "accepted" },
+          ],
+          recurringEventId: "recurring-daily-xyz",
+        },
+        {
+          id: "event-adhoc-2",
+          title: "Interview - Jane Doe",
+          start: "2026-03-16T11:00:00Z",
+          end: "2026-03-16T12:00:00Z",
+          attendees: [
+            { email: "jane@example.com", responseStatus: "needsAction" },
+          ],
+        },
+        {
+          id: "event-recurring-2",
+          title: "Weekly Review",
+          start: "2026-03-16T16:00:00Z",
+          end: "2026-03-16T17:00:00Z",
+          attendees: [],
+          recurringEventId: "recurring-weekly-def",
+        },
+      ];
+
+      const mockCalendarService = {
+        getUpcomingEvents: jest.fn().mockResolvedValue(mockEvents),
+      } as unknown as GoogleCalendarService;
+
+      const detector = new MeetingDetectorService(mockCalendarService);
+      const meetings = await detector.queryUpcomingMeetings({ days: 7 });
+
+      expect(meetings.length).toBe(3);
+
+      // First: recurring
+      expect(meetings[0].isRecurring).toBe(true);
+      expect(meetings[0].recurringEventId).toBe("recurring-daily-xyz");
+
+      // Second: ad-hoc
+      expect(meetings[1].isRecurring).toBe(false);
+      expect(meetings[1].recurringEventId).toBeUndefined();
+
+      // Third: recurring
+      expect(meetings[2].isRecurring).toBe(true);
+      expect(meetings[2].recurringEventId).toBe("recurring-weekly-def");
+
+      console.log(
+        "✓ Mixed recurring and non-recurring meetings classified correctly",
+      );
     });
   });
 });
