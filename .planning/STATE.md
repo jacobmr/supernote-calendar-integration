@@ -1,24 +1,24 @@
 # Project State - Supernote Calendar Integration
 
 **Last Updated**: 2026-03-15
-**Current Phase**: v1.0 complete — no active phase
-**Total Phases**: 6 (+ 2.2 inserted)
+**Current Phase**: 7 of 9 (Production Infrastructure Setup)
+**Total Phases**: 9
 
 ## Project Reference
 
 See: .planning/PROJECT.md (updated 2026-03-15)
 
 **Core value:** Clean, findable meeting templates
-**Current focus:** v1.0 shipped — planning next milestone
+**Current focus:** v1.1 Production Deploy & Validation
 
 ## Current Position
 
-Phase: All phases complete
-Plan: N/A
-Status: Milestone v1.0 shipped
-Last activity: 2026-03-15 — v1.0 milestone complete
+Phase: 7 of 9 (Production Infrastructure Setup)
+Plan: Not started
+Status: Ready to plan
+Last activity: 2026-03-15 — Milestone v1.1 created
 
-Progress: █████████████ 100%
+Progress: ░░░░░░░░░░ 0%
 
 ## Key Decisions Made
 
@@ -26,9 +26,11 @@ See .planning/PROJECT.md Key Decisions table for full log.
 
 ## Current Constraints & Blockers
 
-### Resolved
-
-All v1.0 blockers resolved. See .planning/milestones/v1.0-ROADMAP.md for details.
+- Server at 37.27.198.218 (new, may need initial setup)
+- Domain supernote.salundo.com pointed at the server
+- SSH access available (need to verify/configure alias)
+- Production-grade: needs reverse proxy, TLS, monitoring
+- Fleet managed via ShellHub at hub.salundo.com
 
 ## Architecture
 
@@ -48,12 +50,18 @@ All v1.0 blockers resolved. See .planning/milestones/v1.0-ROADMAP.md for details
 - Test execution: ~5 seconds (105 tests)
 - Scheduler job: ~50-200ms per run
 
+### Roadmap Evolution
+
+- Milestone v1.0 created: MVP — API setup through deployment, 6 phases (Phase 1-6 + 2.2)
+- Milestone v1.0 shipped: 2026-03-15
+- Milestone v1.1 created: Production deploy & validation, 3 phases (Phase 7-9)
+
 ## Session Continuity
 
 Last session: 2026-03-15
-Stopped at: v1.0 milestone complete
+Stopped at: Milestone v1.1 initialization
 Resume file: None
 
 ---
 
-_v1.0 shipped. See .planning/MILESTONES.md for milestone record._
+_v1.0 shipped. v1.1 in progress. See .planning/MILESTONES.md for milestone record._
