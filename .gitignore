@@ -11,8 +11,7 @@ data/
 *.swp
 *.swo
 
-# Secrets management
-.env.local
-secrets.*.enc
+# Secrets management — plaintext never committed
+.env.production
 .env.bak.pre-sops
 tokens.json
