@@ -41,7 +41,7 @@ None
 **Plans**: TBD
 
 Plans:
-- [ ] 07-01: Server provisioning, Docker, ShellHub enrollment
+- [x] 07-01: Server provisioning, Docker, ShellHub enrollment (ShellHub deferred)
 - [ ] 07-02: Caddy reverse proxy, TLS, production Docker Compose
 - [ ] 07-03: SOPS secrets management, deploy script
 
@@ -77,6 +77,6 @@ Plans:
 | 4. Note Templates & Generation      | v1.0      | 2/2            | Complete    | 2026-03-15 |
 | 5. End-to-End Integration           | v1.0      | 2/2            | Complete    | 2026-03-15 |
 | 6. Deployment & Polish              | v1.0      | 2/2            | Complete    | 2026-03-15 |
-| 7. Production Infrastructure Setup  | v1.1      | 0/?            | Not started | -          |
+| 7. Production Infrastructure Setup  | v1.1      | 1/3            | In progress | -          |
 | 8. Production Deployment & Integration | v1.1   | 0/?            | Not started | -          |
 | 9. UAT & Validation                 | v1.1      | 0/?            | Not started | -          |
