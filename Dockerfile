@@ -1,5 +1,8 @@
 FROM node:18-alpine
 
+# Install curl for health checks
+RUN apk add --no-cache curl
+
 WORKDIR /app
 
 # Copy package files
@@ -25,6 +28,10 @@ RUN mkdir -p data
 
 # Expose Express server port
 EXPOSE 3000
+
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --retries=3 --start-period=15s \
+  CMD curl -f http://localhost:3000/health || exit 1
 
 # Run both Express server and scheduler
 CMD ["sh", "start.sh"]

@@ -3,10 +3,14 @@ import cookieParser from "cookie-parser";
 import * as fs from "fs";
 import * as path from "path";
 import { authMiddleware } from "./middleware/auth";
+import { runPipelineOnce } from "./index-scheduler";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 const DASHBOARD_PASSWORD = process.env.DASHBOARD_PASSWORD || "admin";
+
+// In-memory flag to prevent concurrent pipeline runs
+let pipelineRunning = false;
 
 // Paths for state files
 const MEETING_STATE_PATH = path.join(
@@ -37,6 +41,15 @@ const sessionData: SessionData = {
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(cookieParser());
+
+/**
+ * GET /health
+ * Health check endpoint for Docker and monitoring
+ * Placed before auth middleware so it's publicly accessible
+ */
+app.get("/health", (req: Request, res: Response): void => {
+  res.json({ status: "ok", uptime: process.uptime() });
+});
 
 // Authentication middleware (protect all routes except /login)
 app.use(authMiddleware);
@@ -857,13 +870,32 @@ app.get("/api/status", (req: Request, res: Response): void => {
 
 /**
  * POST /api/trigger
- * Placeholder for manual scheduler trigger (future implementation)
+ * Manually triggers the meeting detection pipeline
+ * Returns 429 if a run is already in progress
  */
-app.post("/api/trigger", (req: Request, res: Response): void => {
-  res.json({
-    message:
-      "Manual trigger is not yet implemented. The scheduler runs automatically every hour.",
-  });
+app.post("/api/trigger", async (req: Request, res: Response): Promise<void> => {
+  if (pipelineRunning) {
+    res.status(429).json({
+      message: "Pipeline is already running. Please wait for it to finish.",
+    });
+    return;
+  }
+
+  pipelineRunning = true;
+  try {
+    const result = await runPipelineOnce();
+    res.json({ triggered: true, result });
+  } catch (error) {
+    const errorMessage =
+      error instanceof Error ? error.message : "Unknown error";
+    console.error("[Trigger] Pipeline failed:", errorMessage);
+    res.status(500).json({
+      triggered: true,
+      error: errorMessage,
+    });
+  } finally {
+    pipelineRunning = false;
+  }
 });
 
 /**
