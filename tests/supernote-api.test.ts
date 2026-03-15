@@ -1,3 +1,4 @@
+import * as crypto from "crypto";
 import { SupernoteAPIClient } from "../src/services/supernote-api";
 
 // Mock global fetch for direct API calls
@@ -79,6 +80,18 @@ describe("Supernote API Client", () => {
         /Not authenticated/,
       );
     });
+
+    test("uploadFile should throw if not authenticated", async () => {
+      await expect(
+        client.uploadFile(Buffer.from("test"), "test.md", 0),
+      ).rejects.toThrow(/Not authenticated/);
+    });
+
+    test("uploadTextFile should throw if not authenticated", async () => {
+      await expect(
+        client.uploadTextFile("test content", "test.md", 0),
+      ).rejects.toThrow(/Not authenticated/);
+    });
   });
 
   describe("API Method Signatures", () => {
@@ -89,10 +102,11 @@ describe("Supernote API Client", () => {
         "getNoteById",
         "createFolder",
         "createFolderPath",
-        "createFolderPath",
         "rename",
         "moveFiles",
         "deleteFiles",
+        "uploadFile",
+        "uploadTextFile",
         "syncFiles",
         "isAuthenticated",
         "getToken",
@@ -275,6 +289,243 @@ describe("Supernote API Client", () => {
           body: JSON.stringify({ idList: [5, 6], directoryId: 10 }),
         }),
       );
+    });
+  });
+
+  describe("uploadFile", () => {
+    const testContent = Buffer.from("# Meeting Notes\n\nTest content");
+    const testMd5 = crypto.createHash("md5").update(testContent).digest("hex");
+
+    beforeEach(() => {
+      (client as any).token = "mock-token";
+    });
+
+    test("should complete 3-step upload flow", async () => {
+      // Step 1: Apply response
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          url: "https://s3.example.com/upload-target",
+          s3Authorization: "AWS4-HMAC-SHA256 ...",
+          xamzDate: "20260315T120000Z",
+          innerName: "inner-file-name-123",
+        }),
+      });
+
+      // Step 2: S3 PUT response
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+      });
+
+      // Step 3: Finish response
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+
+      await client.uploadFile(testContent, "notes.md", 42);
+
+      expect(mockFetch).toHaveBeenCalledTimes(3);
+
+      // Verify Step 1: Apply call
+      expect(mockFetch.mock.calls[0][0]).toBe(
+        "https://cloud.supernote.com/api/file/upload/apply",
+      );
+      const applyBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(applyBody).toEqual({
+        directoryId: 42,
+        fileName: "notes.md",
+        md5: testMd5,
+        size: testContent.byteLength,
+      });
+
+      // Verify Step 2: S3 PUT
+      expect(mockFetch.mock.calls[1][0]).toBe(
+        "https://s3.example.com/upload-target",
+      );
+      expect(mockFetch.mock.calls[1][1].method).toBe("PUT");
+      expect(mockFetch.mock.calls[1][1].headers).toEqual({
+        Authorization: "AWS4-HMAC-SHA256 ...",
+        "x-amz-date": "20260315T120000Z",
+        "x-amz-content-sha256": "UNSIGNED-PAYLOAD",
+        "Content-Type": "application/octet-stream",
+      });
+
+      // Verify Step 3: Finish call
+      expect(mockFetch.mock.calls[2][0]).toBe(
+        "https://cloud.supernote.com/api/file/upload/finish",
+      );
+      const finishBody = JSON.parse(mockFetch.mock.calls[2][1].body);
+      expect(finishBody).toEqual({
+        directoryId: 42,
+        fileName: "notes.md",
+        fileSize: testContent.byteLength,
+        innerName: "inner-file-name-123",
+        md5: testMd5,
+      });
+    });
+
+    test("should throw if apply response missing required fields", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          url: "https://s3.example.com/upload-target",
+          // Missing s3Authorization, xamzDate, innerName
+        }),
+      });
+
+      await expect(
+        client.uploadFile(testContent, "notes.md", 42),
+      ).rejects.toThrow(/missing required fields/);
+    });
+
+    test("should throw on apply API error", async () => {
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          errorCode: "500",
+          errorMsg: "Upload not allowed",
+        }),
+      });
+
+      await expect(
+        client.uploadFile(testContent, "notes.md", 42),
+      ).rejects.toThrow("Upload not allowed");
+    });
+
+    test("should throw on S3 PUT failure", async () => {
+      // Apply succeeds
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          url: "https://s3.example.com/upload-target",
+          s3Authorization: "AWS4-HMAC-SHA256 ...",
+          xamzDate: "20260315T120000Z",
+          innerName: "inner-file-name-123",
+        }),
+      });
+
+      // S3 PUT fails
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 403,
+        statusText: "Forbidden",
+      });
+
+      await expect(
+        client.uploadFile(testContent, "notes.md", 42),
+      ).rejects.toThrow("S3 upload failed: 403 Forbidden");
+    });
+
+    test("should throw on finish API error", async () => {
+      // Apply succeeds
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          url: "https://s3.example.com/upload-target",
+          s3Authorization: "AWS4-HMAC-SHA256 ...",
+          xamzDate: "20260315T120000Z",
+          innerName: "inner-file-name-123",
+        }),
+      });
+
+      // S3 PUT succeeds
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+      });
+
+      // Finish fails
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          errorCode: "400",
+          errorMsg: "File already exists",
+        }),
+      });
+
+      await expect(
+        client.uploadFile(testContent, "notes.md", 42),
+      ).rejects.toThrow("File already exists");
+    });
+
+    test("should throw on finish HTTP error", async () => {
+      // Apply succeeds
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          url: "https://s3.example.com/upload-target",
+          s3Authorization: "AWS4-HMAC-SHA256 ...",
+          xamzDate: "20260315T120000Z",
+          innerName: "inner-file-name-123",
+        }),
+      });
+
+      // S3 PUT succeeds
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+      });
+
+      // Finish HTTP error
+      mockFetch.mockResolvedValueOnce({
+        ok: false,
+        status: 500,
+        statusText: "Internal Server Error",
+      });
+
+      await expect(
+        client.uploadFile(testContent, "notes.md", 42),
+      ).rejects.toThrow("500 Internal Server Error");
+    });
+  });
+
+  describe("uploadTextFile", () => {
+    beforeEach(() => {
+      (client as any).token = "mock-token";
+    });
+
+    test("should convert string to Buffer and call uploadFile", async () => {
+      const textContent = "# Hello World\n\nThis is a test note.";
+      const expectedMd5 = crypto
+        .createHash("md5")
+        .update(Buffer.from(textContent, "utf-8"))
+        .digest("hex");
+
+      // Apply
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({
+          url: "https://s3.example.com/upload",
+          s3Authorization: "AWS4-HMAC-SHA256 ...",
+          xamzDate: "20260315T120000Z",
+          innerName: "inner-123",
+        }),
+      });
+      // S3 PUT
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+      });
+      // Finish
+      mockFetch.mockResolvedValueOnce({
+        ok: true,
+        json: async () => ({ success: true }),
+      });
+
+      await client.uploadTextFile(textContent, "note.md", 10);
+
+      // Verify apply was called with correct MD5 and size from Buffer
+      const applyBody = JSON.parse(mockFetch.mock.calls[0][1].body);
+      expect(applyBody.md5).toBe(expectedMd5);
+      expect(applyBody.size).toBe(Buffer.from(textContent, "utf-8").byteLength);
+      expect(applyBody.fileName).toBe("note.md");
+      expect(applyBody.directoryId).toBe(10);
     });
   });
 

@@ -1,3 +1,4 @@
+import * as crypto from "crypto";
 import supernoteApi from "supernote-cloud-api";
 import type { FileInfo } from "supernote-cloud-api";
 
@@ -177,6 +178,98 @@ export class SupernoteAPIClient {
       `Deleting ${idList.length} items from directory ${directoryId}...`,
     );
     return this.postJson("/api/file/delete", { idList, directoryId });
+  }
+
+  /**
+   * Upload a file to Supernote Cloud using the 3-step S3 flow.
+   *
+   * 1. Apply: POST /api/file/upload/apply — requests an S3 pre-signed URL
+   * 2. PUT to S3: Upload the raw content to the pre-signed URL
+   * 3. Finish: POST /api/file/upload/finish — confirms the upload
+   *
+   * @param content File content as a Buffer
+   * @param fileName Name for the uploaded file
+   * @param directoryId Target directory ID
+   */
+  async uploadFile(
+    content: Buffer,
+    fileName: string,
+    directoryId: number,
+  ): Promise<ApiResponse> {
+    const md5 = crypto.createHash("md5").update(content).digest("hex");
+    const size = content.byteLength;
+
+    console.log(
+      `Uploading "${fileName}" (${size} bytes) to directory ${directoryId}...`,
+    );
+
+    // Step 1: Apply — get S3 pre-signed upload details
+    const applyResponse = await this.postJson("/api/file/upload/apply", {
+      directoryId,
+      fileName,
+      md5,
+      size,
+    });
+
+    const { url, s3Authorization, xamzDate, innerName } = applyResponse as {
+      url: string;
+      s3Authorization: string;
+      xamzDate: string;
+      innerName: string;
+    };
+
+    if (!url || !s3Authorization || !xamzDate || !innerName) {
+      throw new Error(
+        "Supernote upload apply response missing required fields (url, s3Authorization, xamzDate, innerName)",
+      );
+    }
+
+    // Step 2: PUT to S3 — upload the raw content
+    const s3Response = await fetch(url, {
+      method: "PUT",
+      headers: {
+        Authorization: s3Authorization,
+        "x-amz-date": xamzDate,
+        "x-amz-content-sha256": "UNSIGNED-PAYLOAD",
+        "Content-Type": "application/octet-stream",
+      },
+      body: content,
+    });
+
+    if (!s3Response.ok) {
+      throw new Error(
+        `S3 upload failed: ${s3Response.status} ${s3Response.statusText}`,
+      );
+    }
+
+    // Step 3: Finish — confirm the upload
+    const finishResponse = await this.postJson("/api/file/upload/finish", {
+      directoryId,
+      fileName,
+      fileSize: size,
+      innerName,
+      md5,
+    });
+
+    console.log(`Upload of "${fileName}" complete`);
+    return finishResponse;
+  }
+
+  /**
+   * Upload a text file to Supernote Cloud.
+   * Convenience wrapper around uploadFile() that converts string content to Buffer.
+   *
+   * @param content Text content of the file
+   * @param fileName Name for the uploaded file
+   * @param directoryId Target directory ID
+   */
+  async uploadTextFile(
+    content: string,
+    fileName: string,
+    directoryId: number,
+  ): Promise<ApiResponse> {
+    const buffer = Buffer.from(content, "utf-8");
+    return this.uploadFile(buffer, fileName, directoryId);
   }
 
   async getNoteById(id: string): Promise<{ url: string; id: string }> {
