@@ -11,6 +11,7 @@ export interface FolderMapping {
   folderPath: string;
   isRecurring: boolean;
   createdAt: number;
+  noteFileName?: string;
 }
 
 /**
@@ -139,6 +140,25 @@ export class FolderMappingStore {
   addRecurringFolder(mapping: RecurringFolderMapping): void {
     const state = this.loadState();
     state.recurringFolders.push(mapping);
+    this.saveState(state);
+  }
+
+  /**
+   * Update an existing folder mapping with partial data.
+   * Finds the mapping by meetingId and merges the updates, then saves.
+   */
+  updateMapping(meetingId: string, updates: Partial<FolderMapping>): void {
+    const state = this.loadState();
+    const index = state.mappings.findIndex((m) => m.meetingId === meetingId);
+
+    if (index === -1) {
+      console.warn(
+        `[FolderMappingStore] No mapping found for meetingId "${meetingId}" — cannot update`,
+      );
+      return;
+    }
+
+    state.mappings[index] = { ...state.mappings[index], ...updates };
     this.saveState(state);
   }
 
