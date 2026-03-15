@@ -1,33 +1,34 @@
 # Project State - Supernote Calendar Integration
 
 **Last Updated**: 2026-03-15
-**Current Phase**: Phase 4 in progress
+**Current Phase**: Phase 4 complete
 **Total Phases**: 6
 
 ## Current Position
 
 Phase: 4 of 6 (Note Templates & Generation)
-Plan: 1 of 2 in current phase
-Status: In progress
-Last activity: 2026-03-15 - Completed 04-01-PLAN.md
+Plan: 2 of 2 in current phase
+Status: Phase complete
+Last activity: 2026-03-15 - Completed 04-02-PLAN.md
 
-Progress: █████████░░░ 75%
+Progress: ██████████░░ 83%
 
 ## Phase Completion Status
 
-| Phase                | Plan   | Status          | Commit      |
-| -------------------- | ------ | --------------- | ----------- |
-| 01-api-setup         | 01     | ✅ Complete     | 87222df     |
-| 01-api-setup         | 02     | ✅ Complete     | -           |
-| 01-api-setup         | 03     | ✅ Complete     | 5ebb761     |
-| 02-meeting-detection | 01     | ✅ Complete     | 0ee39e7     |
-| 2.2-web-dashboard    | 01     | ✅ Complete     | 0404902     |
-| 2.2-web-dashboard    | 02     | ✅ Complete     | ca2d6fc     |
-| 03-folder-org        | 01     | ✅ Complete     | e10139d     |
-| 03-folder-org        | 02     | ✅ Complete     | 6e8faa6     |
-| **04-note-templates** | **01** | **✅ Complete** | **28757de** |
-| 05-integration       | -      | ⏳ Pending      | -           |
-| 06-deployment        | -      | ⏳ Pending      | -           |
+| Phase                 | Plan   | Status          | Commit      |
+| --------------------- | ------ | --------------- | ----------- |
+| 01-api-setup          | 01     | ✅ Complete     | 87222df     |
+| 01-api-setup          | 02     | ✅ Complete     | -           |
+| 01-api-setup          | 03     | ✅ Complete     | 5ebb761     |
+| 02-meeting-detection  | 01     | ✅ Complete     | 0ee39e7     |
+| 2.2-web-dashboard     | 01     | ✅ Complete     | 0404902     |
+| 2.2-web-dashboard     | 02     | ✅ Complete     | ca2d6fc     |
+| 03-folder-org         | 01     | ✅ Complete     | e10139d     |
+| 03-folder-org         | 02     | ✅ Complete     | 6e8faa6     |
+| 04-note-templates     | 01     | ✅ Complete     | 28757de     |
+| **04-note-templates** | **02** | **✅ Complete** | **1afebfa** |
+| 05-integration        | -      | ⏳ Pending      | -           |
+| 06-deployment         | -      | ⏳ Pending      | -           |
 
 ## Key Decisions Made
 
@@ -36,6 +37,8 @@ Progress: █████████░░░ 75%
 1. **Intl.DateTimeFormat for formatting**: Zero-dependency date/time formatting
 2. **Recurring filenames omit time**: `YYYY-MM-DD Title.md` — unique folder per meeting
 3. **Ad-hoc filenames include time**: `YYYY-MM-DD HH-MM Title.md` — prevents collisions in shared folder
+4. **NoteCreator reuses same SupernoteAPIClient**: Single auth instance shared with FolderOrganizer
+5. **Duplicate prevention via noteFileName**: State-based dedup on FolderMapping
 
 ### From Phase 3
 
@@ -80,6 +83,8 @@ Progress: █████████░░░ 75%
 ✅ Supernote 3-step S3 file upload (apply → PUT → finish)
 ✅ Meeting note markdown template generation
 ✅ Date-based filename generation (recurring vs ad-hoc)
+✅ NoteCreator service with duplicate prevention
+✅ Automatic note creation in scheduler pipeline
 
 ## Architecture Decisions
 
@@ -93,24 +98,24 @@ Progress: █████████░░░ 75%
 - **Folder Organizer**: Creates Calendar/Recurring/[Name] and Calendar/Ad-Hoc in Supernote
 - **File Upload**: 3-step S3 flow (apply → PUT → finish) with MD5 verification
 - **Note Templates**: Markdown generation with Intl.DateTimeFormat formatting
+- **Note Creator**: Orchestrates template generation + upload with duplicate prevention
 
-### Next (Phase 4, Plan 02)
+### Next (Phase 5)
 
-- NoteCreator service wiring template generation + file upload
-- Scheduler integration for automatic note creation
+- End-to-end integration testing (recurring + ad-hoc flows)
 
 ## Performance Baselines
 
 - Build time: ~2 seconds
-- Test execution: ~3.3 seconds (86 tests)
+- Test execution: ~3.5 seconds (95 tests)
 - Scheduler job: ~50-200ms per run
 
 ## Session Continuity
 
-Last session: 2026-03-15T03:52:26Z
-Stopped at: Completed 04-01-PLAN.md — Phase 4 plan 1 of 2
+Last session: 2026-03-15T03:59:41Z
+Stopped at: Completed 04-02-PLAN.md — Phase 4 complete
 Resume file: None
 
 ---
 
-_See .planning/phases/04-note-templates/04-01-SUMMARY.md for detailed plan execution_
+_See .planning/phases/04-note-templates/04-02-SUMMARY.md for detailed plan execution_
