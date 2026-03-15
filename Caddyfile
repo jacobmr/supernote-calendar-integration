@@ -1,0 +1,12 @@
+# Supernote Calendar Integration - Caddy site block
+#
+# This file is NOT used by a standalone Caddy container.
+# The production server runs Caddy as part of the 3dez project,
+# which owns ports 80/443. This site block must be ADDED to
+# the 3dez Caddyfile at /opt/3dez/Caddyfile on the server.
+#
+# See docker-compose.prod.yml for the app-only production config.
+
+supernote.salundo.com {
+    reverse_proxy supernote-app:3000
+}

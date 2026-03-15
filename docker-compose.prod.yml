@@ -1,0 +1,33 @@
+# Production Docker Compose - Supernote Calendar Integration
+#
+# App-only config. Caddy reverse proxy is managed by the co-hosted
+# 3dez project at /opt/3dez. Both projects share the 'web-proxy'
+# Docker network so Caddy can reach this app by container name.
+#
+# Usage: docker compose -f docker-compose.prod.yml up -d --build
+
+services:
+  app:
+    build: .
+    container_name: supernote-app
+    expose:
+      - "3000"
+    volumes:
+      - app_data:/app/data
+      - ./.env:/app/.env:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3000/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 15s
+    networks:
+      - web-proxy
+
+networks:
+  web-proxy:
+    external: true
+
+volumes:
+  app_data:
