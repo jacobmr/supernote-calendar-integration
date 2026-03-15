@@ -44,7 +44,7 @@ Plans:
 
 - [x] 07-01: Server provisioning, Docker, ShellHub enrollment (ShellHub deferred)
 - [x] 07-02: Caddy reverse proxy, TLS, production Docker Compose
-- [ ] 07-03: SOPS secrets management, deploy script
+- [x] 07-03: SOPS secrets management, deploy script
 
 #### Phase 8: Production Deployment & Integration
 
@@ -80,6 +80,6 @@ Plans:
 | 4. Note Templates & Generation         | v1.0      | 2/2            | Complete    | 2026-03-15 |
 | 5. End-to-End Integration              | v1.0      | 2/2            | Complete    | 2026-03-15 |
 | 6. Deployment & Polish                 | v1.0      | 2/2            | Complete    | 2026-03-15 |
-| 7. Production Infrastructure Setup     | v1.1      | 2/3            | In progress | -          |
+| 7. Production Infrastructure Setup     | v1.1      | 3/3            | Complete    | 2026-03-15 |
 | 8. Production Deployment & Integration | v1.1      | 0/?            | Not started | -          |
 | 9. UAT & Validation                    | v1.1      | 0/?            | Not started | -          |

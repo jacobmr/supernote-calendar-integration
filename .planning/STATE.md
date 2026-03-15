@@ -14,11 +14,11 @@ See: .planning/PROJECT.md (updated 2026-03-15)
 ## Current Position
 
 Phase: 7 of 9 (Production Infrastructure Setup)
-Plan: 2 of 3 in current phase
-Status: In progress
-Last activity: 2026-03-15 — Completed 07-02-PLAN.md
+Plan: 3 of 3 in current phase
+Status: Phase complete
+Last activity: 2026-03-15 — Completed 07-03-PLAN.md
 
-Progress: ██░░░░░░░░ 20%
+Progress: ███░░░░░░░ 30%
 
 ## Key Decisions Made
 
@@ -30,6 +30,7 @@ See .planning/PROJECT.md Key Decisions table for full log.
 | 7     | Disable UFW during provisioning | Repeated lockouts, re-enable after deploy               |
 | 7     | Use existing Caddy on server    | Already serving ez3d.salundo.com, add supernote as site |
 | 7     | Shared web-proxy Docker network | 3dez Caddy owns ports 80/443, supernote joins via external network |
+| 7     | Pipe secrets via SSH, no local plaintext | Avoids decrypted credentials on disk during deploy |
 
 ## Current Constraints & Blockers
 
@@ -38,7 +39,9 @@ See .planning/PROJECT.md Key Decisions table for full log.
 - SSH access working (direct, no ShellHub yet)
 - **HTTPS live** at supernote.salundo.com (Let's Encrypt, auto-renew)
 - Caddy shared via `web-proxy` Docker network (3dez Caddy routes both domains)
-- App running with placeholder .env (real secrets needed in Plan 03)
+- App running with placeholder .env (real secrets needed in Phase 8)
+- SOPS-encrypted secrets file ready (placeholder values)
+- Deploy script ready (`scripts/deploy.sh`)
 - UFW disabled — re-enable after deployment (ISS-002)
 - ShellHub deferred — parallel fix (ISS-001)
 
@@ -52,6 +55,8 @@ See .planning/PROJECT.md Key Decisions table for full log.
 - **Scheduler**: node-cron (every hour at :00)
 - **State Storage**: JSON files (meeting-state.json, scheduler-status.json, folder-mappings.json)
 - **Container**: Docker Compose with health check
+- **Secrets**: SOPS + age encryption
+- **Deploy**: scripts/deploy.sh (decrypt → rsync → rebuild → health check)
 - **Tests**: 105 passing across 11 suites
 
 ### Production Server (37.27.198.218)
@@ -82,7 +87,7 @@ See .planning/PROJECT.md Key Decisions table for full log.
 ## Session Continuity
 
 Last session: 2026-03-15
-Stopped at: Completed 07-02-PLAN.md
+Stopped at: Completed 07-03-PLAN.md — Phase 7 complete
 Resume file: None
 
 ---
