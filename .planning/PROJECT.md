@@ -47,19 +47,19 @@ Self-hosted via Docker Compose with health checks and manual trigger endpoint.
 
 ## Key Decisions
 
-| Decision | Rationale | Outcome |
-| --- | --- | --- |
-| Use unofficial Supernote API | Official API doesn't exist; community implementation works | Good |
-| Scheduled job (hourly) vs real-time | Simpler to implement, sufficient for meeting prep | Good |
-| Hybrid folder structure (Recurring + Ad-Hoc) | Recurring meetings get their own folders; ad-hoc grouped together | Good |
-| Template sections: Agenda, Notes, Action Items, Attendees, Decisions | Covers meeting prep, execution, and follow-up | Good |
-| No notification layer in v1 | Keep scope tight; focus on reliable note creation | Good |
-| JSON file-based state persistence | No database needed for single-user self-hosted app | Good |
-| 3-step S3 upload flow for Supernote | Required by Supernote Cloud API (apply -> PUT -> finish) | Good |
-| Single Docker container with shell script | Simpler than multi-container for Express + scheduler | Good |
-| Manual mock objects for integration tests | Real service composition with controllable boundaries | Good |
-| Structured logging with createLogger wrapper | No external library needed for single-container app | Good |
-| Health endpoint before auth middleware | Docker health check needs unauthenticated access | Good |
+| Decision                                                             | Rationale                                                         | Outcome |
+| -------------------------------------------------------------------- | ----------------------------------------------------------------- | ------- |
+| Use unofficial Supernote API                                         | Official API doesn't exist; community implementation works        | Good    |
+| Scheduled job (hourly) vs real-time                                  | Simpler to implement, sufficient for meeting prep                 | Good    |
+| Hybrid folder structure (Recurring + Ad-Hoc)                         | Recurring meetings get their own folders; ad-hoc grouped together | Good    |
+| Template sections: Agenda, Notes, Action Items, Attendees, Decisions | Covers meeting prep, execution, and follow-up                     | Good    |
+| No notification layer in v1                                          | Keep scope tight; focus on reliable note creation                 | Good    |
+| JSON file-based state persistence                                    | No database needed for single-user self-hosted app                | Good    |
+| 3-step S3 upload flow for Supernote                                  | Required by Supernote Cloud API (apply -> PUT -> finish)          | Good    |
+| Single Docker container with shell script                            | Simpler than multi-container for Express + scheduler              | Good    |
+| Manual mock objects for integration tests                            | Real service composition with controllable boundaries             | Good    |
+| Structured logging with createLogger wrapper                         | No external library needed for single-container app               | Good    |
+| Health endpoint before auth middleware                               | Docker health check needs unauthenticated access                  | Good    |
 
 ---
 

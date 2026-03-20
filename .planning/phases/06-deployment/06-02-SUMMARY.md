@@ -61,6 +61,7 @@ completed: 2026-03-15
 - **Files modified:** 4
 
 ## Accomplishments
+
 - Structured logging utility replacing all raw console.log/warn/error across scheduler and server
 - Startup validation that exits on missing Google credentials and warns on missing Supernote credentials
 - Scheduler error recovery with exponential backoff retry and consecutive failure tracking
@@ -74,12 +75,14 @@ Each task was committed atomically:
 2. **Task 2: Error recovery and README** - `13e17f9` (feat)
 
 ## Files Created/Modified
+
 - `src/utils/logger.ts` - createLogger(prefix) returning { info, warn, error, debug } with ISO timestamps
 - `src/index-scheduler.ts` - Logger, startup validation, retry with failure tracking
 - `src/index-server.ts` - Logger replacing raw console calls
 - `README.md` - Setup, config table, OAuth2 guide, architecture, troubleshooting
 
 ## Decisions Made
+
 - No external logging library — console wrapper sufficient for single-container deployment
 - Startup validates env var presence only, not API connectivity — avoids false negatives on transient outages
 - Scheduler keeps running after 3 consecutive failures — self-healing on next successful hour
@@ -97,6 +100,7 @@ None
 Phase 6 complete. All 6 phases finished — milestone is 100% done.
 
 Project is operationally ready:
+
 - Docker Compose single-command startup
 - Structured logging for observability
 - Startup validation catches configuration errors
@@ -104,5 +108,6 @@ Project is operationally ready:
 - README enables setup from scratch
 
 ---
-*Phase: 06-deployment*
-*Completed: 2026-03-15*
+
+_Phase: 06-deployment_
+_Completed: 2026-03-15_

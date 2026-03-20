@@ -14,18 +14,18 @@ The dashboard is available at `http://localhost:3000`. Default password: `admin`
 
 ## Configuration
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `GOOGLE_CLIENT_ID` | Yes | — | Google OAuth2 client ID |
-| `GOOGLE_CLIENT_SECRET` | Yes | — | Google OAuth2 client secret |
-| `GOOGLE_REDIRECT_URI` | No | `http://localhost:3000/oauth/callback` | OAuth2 redirect URI |
-| `TOKEN_STORE_PATH` | No | `./tokens.json` | Path to store OAuth2 tokens |
-| `SUPERNOTE_EMAIL` | No | — | Supernote account email |
-| `SUPERNOTE_PASSWORD` | No | — | Supernote account password |
-| `DASHBOARD_PASSWORD` | No | `admin` | Password for web dashboard |
-| `PORT` | No | `3000` | Server port |
-| `TZ` | No | `America/New_York` | Timezone for scheduling |
-| `LOG_LEVEL` | No | — | Set to `debug` for verbose logging |
+| Variable               | Required | Default                                | Description                        |
+| ---------------------- | -------- | -------------------------------------- | ---------------------------------- |
+| `GOOGLE_CLIENT_ID`     | Yes      | —                                      | Google OAuth2 client ID            |
+| `GOOGLE_CLIENT_SECRET` | Yes      | —                                      | Google OAuth2 client secret        |
+| `GOOGLE_REDIRECT_URI`  | No       | `http://localhost:3000/oauth/callback` | OAuth2 redirect URI                |
+| `TOKEN_STORE_PATH`     | No       | `./tokens.json`                        | Path to store OAuth2 tokens        |
+| `SUPERNOTE_EMAIL`      | No       | —                                      | Supernote account email            |
+| `SUPERNOTE_PASSWORD`   | No       | —                                      | Supernote account password         |
+| `DASHBOARD_PASSWORD`   | No       | `admin`                                | Password for web dashboard         |
+| `PORT`                 | No       | `3000`                                 | Server port                        |
+| `TZ`                   | No       | `America/New_York`                     | Timezone for scheduling            |
+| `LOG_LEVEL`            | No       | —                                      | Set to `debug` for verbose logging |
 
 If Supernote credentials are not set, the scheduler still detects calendar changes but skips folder/note creation.
 
